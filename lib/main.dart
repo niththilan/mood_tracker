@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'analytics_page.dart';
 import 'goals_page.dart';
+import 'auth_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,9 +22,67 @@ class MoodTrackerApp extends StatelessWidget {
     return MaterialApp(
       title: 'Daily Mood Tracker',
       theme: ThemeData(primarySwatch: Colors.indigo),
-      home: MoodHomePage(),
+      home: AuthWrapper(),
       debugShowCheckedModeBanner: false,
     );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  @override
+  _AuthWrapperState createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _isInitialized = false;
+  Session? _session;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAuth();
+  }
+
+  Future<void> _initializeAuth() async {
+    // Get initial session
+    _session = Supabase.instance.client.auth.currentSession;
+
+    // Listen to auth changes
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (mounted) {
+        setState(() {
+          _session = data.session;
+        });
+      }
+    });
+
+    setState(() {
+      _isInitialized = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Initializing...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_session != null) {
+      return MoodHomePage();
+    } else {
+      return AuthPage();
+    }
   }
 }
 
@@ -79,58 +138,92 @@ class _MoodHomePageState extends State<MoodHomePage> {
   Future<void> _loadMoodHistory() async {
     setState(() => isLoading = true);
     try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        setState(() => isLoading = false);
+        return;
+      }
+
       final response = await supabase
           .from('mood_entries')
           .select()
+          .eq('user_id', userId)
           .order('created_at', ascending: false);
 
-      setState(() {
-        moodHistory =
-            (response as List).map((json) => MoodEntry.fromJson(json)).toList();
-      });
+      if (mounted) {
+        setState(() {
+          moodHistory = (response as List)
+              .map((json) => MoodEntry.fromJson(json))
+              .toList();
+        });
+      }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading mood history: $error')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading mood history: $error')),
+        );
+      }
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
   Future<void> addMoodEntry() async {
-    if (selectedMood != null) {
+    if (selectedMood != null && !isLoading) {
       setState(() => isLoading = true);
       try {
-        final newEntry = MoodEntry(
-          mood: selectedMood!,
-          note: noteController.text,
-          timestamp: DateTime.now(),
-        );
+        final userId = supabase.auth.currentUser?.id;
+        if (userId == null) {
+          setState(() => isLoading = false);
+          return;
+        }
 
-        print('Attempting to save: ${newEntry.toJson()}'); // Debug log
-        final response = await supabase
-            .from('mood_entries')
-            .insert(newEntry.toJson());
-        print('Database response: $response'); // Debug log
+        final newEntry = {
+          'mood': selectedMood!,
+          'note': noteController.text,
+          'created_at': DateTime.now().toIso8601String(),
+          'user_id': userId,
+        };
 
-        setState(() {
-          selectedMood = null;
-          noteController.clear();
-        });
+        await supabase.from('mood_entries').insert(newEntry);
 
-        await _loadMoodHistory(); // Refresh the list
-        print('Loaded ${moodHistory.length} entries after insert'); // Debug log
+        if (mounted) {
+          setState(() {
+            selectedMood = null;
+            noteController.clear();
+          });
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Mood logged successfully!')));
+          await _loadMoodHistory();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Mood logged successfully!')),
+          );
+        }
       } catch (error) {
-        print('Error details: $error'); // Debug log
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error logging mood: $error')));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error logging mood: $error')),
+          );
+        }
       } finally {
-        setState(() => isLoading = false);
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
+      }
+    }
+  }
+
+  Future<void> _signOut() async {
+    try {
+      await supabase.auth.signOut();
+      // Navigation will be handled automatically by AuthWrapper
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error signing out: $error')),
+        );
       }
     }
   }
@@ -238,6 +331,10 @@ class _MoodHomePageState extends State<MoodHomePage> {
               );
             },
           ),
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: isLoading ? null : _signOut,
+          ),
         ],
       ),
       body: Padding(
@@ -247,14 +344,12 @@ class _MoodHomePageState extends State<MoodHomePage> {
             DropdownButtonFormField<String>(
               decoration: InputDecoration(labelText: 'Select Mood'),
               value: selectedMood,
-              items:
-                  moods
-                      .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                      .toList(),
-              onChanged:
-                  isLoading
-                      ? null
-                      : (val) => setState(() => selectedMood = val),
+              items: moods
+                  .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                  .toList(),
+              onChanged: isLoading
+                  ? null
+                  : (val) => setState(() => selectedMood = val),
             ),
             TextField(
               controller: noteController,
@@ -264,7 +359,13 @@ class _MoodHomePageState extends State<MoodHomePage> {
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: isLoading ? null : addMoodEntry,
-              child: isLoading ? CircularProgressIndicator() : Text('Log Mood'),
+              child: isLoading
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text('Log Mood'),
             ),
             Divider(height: 32),
             Row(
@@ -285,34 +386,32 @@ class _MoodHomePageState extends State<MoodHomePage> {
               ],
             ),
             Expanded(
-              child:
-                  isLoading && moodHistory.isEmpty
-                      ? Center(child: CircularProgressIndicator())
-                      : ListView.builder(
-                        itemCount: moodHistory.length,
-                        itemBuilder: (context, index) {
-                          final entry = moodHistory[index];
-                          return ListTile(
-                            leading: Text(
-                              entry.mood,
-                              style: TextStyle(fontSize: 24),
-                            ),
-                            title: Text(
-                              entry.note.isEmpty ? 'No note' : entry.note,
-                            ),
-                            subtitle: Text(
-                              entry.timestamp.toLocal().toString().split(
-                                '.',
-                              )[0],
-                            ),
-                            trailing: IconButton(
-                              icon: Icon(Icons.delete, color: Colors.red),
-                              onPressed:
-                                  () => _showDeleteConfirmation(entry.id!),
-                            ),
-                          );
-                        },
-                      ),
+              child: isLoading && moodHistory.isEmpty
+                  ? Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      itemCount: moodHistory.length,
+                      itemBuilder: (context, index) {
+                        final entry = moodHistory[index];
+                        return ListTile(
+                          leading: Text(
+                            entry.mood,
+                            style: TextStyle(fontSize: 24),
+                          ),
+                          title: Text(
+                            entry.note.isEmpty ? 'No note' : entry.note,
+                          ),
+                          subtitle: Text(
+                            entry.timestamp.toLocal().toString().split(
+                                  '.',
+                                )[0],
+                          ),
+                          trailing: IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _showDeleteConfirmation(entry.id!),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -324,9 +423,19 @@ class _MoodHomePageState extends State<MoodHomePage> {
           children: [
             DrawerHeader(
               decoration: BoxDecoration(color: Colors.indigo),
-              child: Text(
-                'Mood Tracker',
-                style: TextStyle(color: Colors.white, fontSize: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mood Tracker',
+                    style: TextStyle(color: Colors.white, fontSize: 24),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    supabase.auth.currentUser?.email ?? 'User',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ],
               ),
             ),
             ListTile(
@@ -355,6 +464,12 @@ class _MoodHomePageState extends State<MoodHomePage> {
                   MaterialPageRoute(builder: (context) => GoalsPage()),
                 );
               },
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.logout),
+              title: Text('Sign Out'),
+              onTap: _signOut,
             ),
           ],
         ),
