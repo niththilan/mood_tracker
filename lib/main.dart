@@ -138,16 +138,9 @@ class _MoodHomePageState extends State<MoodHomePage> {
   Future<void> _loadMoodHistory() async {
     setState(() => isLoading = true);
     try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        setState(() => isLoading = false);
-        return;
-      }
-
       final response = await supabase
           .from('mood_entries')
           .select()
-          .eq('user_id', userId)
           .order('created_at', ascending: false);
 
       if (mounted) {
@@ -174,17 +167,10 @@ class _MoodHomePageState extends State<MoodHomePage> {
     if (selectedMood != null && !isLoading) {
       setState(() => isLoading = true);
       try {
-        final userId = supabase.auth.currentUser?.id;
-        if (userId == null) {
-          setState(() => isLoading = false);
-          return;
-        }
-
         final newEntry = {
           'mood': selectedMood!,
           'note': noteController.text,
           'created_at': DateTime.now().toIso8601String(),
-          'user_id': userId,
         };
 
         await supabase.from('mood_entries').insert(newEntry);
