@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'analytics_page.dart';
+import 'goals_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -106,7 +108,9 @@ class _MoodHomePageState extends State<MoodHomePage> {
         );
 
         print('Attempting to save: ${newEntry.toJson()}'); // Debug log
-        final response = await supabase.from('mood_entries').insert(newEntry.toJson());
+        final response = await supabase
+            .from('mood_entries')
+            .insert(newEntry.toJson());
         print('Database response: $response'); // Debug log
 
         setState(() {
@@ -131,6 +135,86 @@ class _MoodHomePageState extends State<MoodHomePage> {
     }
   }
 
+  Future<void> _deleteMoodEntry(int entryId) async {
+    try {
+      await supabase.from('mood_entries').delete().eq('id', entryId);
+      await _loadMoodHistory(); // Refresh the list
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Mood entry deleted successfully!')),
+      );
+    } catch (error) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error deleting entry: $error')));
+    }
+  }
+
+  Future<void> _deleteAllHistory() async {
+    try {
+      await supabase.from('mood_entries').delete().neq('id', 0);
+      await _loadMoodHistory(); // Refresh the list
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('All mood history deleted successfully!')),
+      );
+    } catch (error) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error deleting history: $error')));
+    }
+  }
+
+  void _showDeleteConfirmation(int entryId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete Entry'),
+          content: Text('Are you sure you want to delete this mood entry?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteMoodEntry(entryId);
+              },
+              child: Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteAllConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete All History'),
+          content: Text(
+            'Are you sure you want to delete ALL mood entries? This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteAllHistory();
+              },
+              child: Text('Delete All', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final moods = [
@@ -142,7 +226,20 @@ class _MoodHomePageState extends State<MoodHomePage> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text('Daily Mood Tracker')),
+      appBar: AppBar(
+        title: Text('Daily Mood Tracker'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.analytics),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AnalyticsPage()),
+              );
+            },
+          ),
+        ],
+      ),
       body: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -170,9 +267,22 @@ class _MoodHomePageState extends State<MoodHomePage> {
               child: isLoading ? CircularProgressIndicator() : Text('Log Mood'),
             ),
             Divider(height: 32),
-            Text(
-              'Mood History',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Mood History',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                if (moodHistory.isNotEmpty)
+                  TextButton(
+                    onPressed: _showDeleteAllConfirmation,
+                    child: Text(
+                      'Clear All',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+              ],
             ),
             Expanded(
               child:
@@ -195,9 +305,56 @@ class _MoodHomePageState extends State<MoodHomePage> {
                                 '.',
                               )[0],
                             ),
+                            trailing: IconButton(
+                              icon: Icon(Icons.delete, color: Colors.red),
+                              onPressed:
+                                  () => _showDeleteConfirmation(entry.id!),
+                            ),
                           );
                         },
                       ),
+            ),
+          ],
+        ),
+      ),
+      // Add this to your navigation drawer or bottom navigation:
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(color: Colors.indigo),
+              child: Text(
+                'Mood Tracker',
+                style: TextStyle(color: Colors.white, fontSize: 24),
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.home),
+              title: Text('Home'),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.analytics),
+              title: Text('Analytics'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AnalyticsPage()),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.flag),
+              title: Text('Goals & Achievements'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => GoalsPage()),
+                );
+              },
             ),
           ],
         ),
