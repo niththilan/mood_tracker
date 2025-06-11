@@ -36,18 +36,21 @@ class _AuthPageState extends State<AuthPage> {
     } on SocketException {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Network error: Please check your internet connection and try again'),
+          content: Text(
+            'Network error: Please check your internet connection and try again',
+          ),
           backgroundColor: Colors.red,
         ),
       );
     } catch (error) {
       String errorMessage = 'Unexpected error occurred: $error';
       if (error.toString().contains('Failed host lookup')) {
-        errorMessage = 'Network connection error. Please check your internet connection and try again.';
+        errorMessage =
+            'Network connection error. Please check your internet connection and try again.';
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -81,18 +84,21 @@ class _AuthPageState extends State<AuthPage> {
     } on SocketException {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Network error: Please check your internet connection and try again'),
+          content: Text(
+            'Network error: Please check your internet connection and try again',
+          ),
           backgroundColor: Colors.red,
         ),
       );
     } catch (error) {
       String errorMessage = 'Unexpected error occurred: $error';
       if (error.toString().contains('Failed host lookup')) {
-        errorMessage = 'Network connection error. Please check your internet connection and try again.';
+        errorMessage =
+            'Network connection error. Please check your internet connection and try again.';
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
       setState(() => _isLoading = false);
     }

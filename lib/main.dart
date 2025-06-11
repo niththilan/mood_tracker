@@ -151,9 +151,10 @@ class _MoodHomePageState extends State<MoodHomePage> {
 
       if (mounted) {
         setState(() {
-          moodHistory = (response as List)
-              .map((json) => MoodEntry.fromJson(json))
-              .toList();
+          moodHistory =
+              (response as List)
+                  .map((json) => MoodEntry.fromJson(json))
+                  .toList();
         });
       }
     } catch (error) {
@@ -189,15 +190,15 @@ class _MoodHomePageState extends State<MoodHomePage> {
 
           await _loadMoodHistory();
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Mood logged successfully!')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Mood logged successfully!')));
         }
       } catch (error) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error logging mood: $error')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error logging mood: $error')));
         }
       } finally {
         if (mounted) {
@@ -213,9 +214,9 @@ class _MoodHomePageState extends State<MoodHomePage> {
       // Navigation will be handled automatically by AuthWrapper
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error signing out: $error')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error signing out: $error')));
       }
     }
   }
@@ -336,12 +337,14 @@ class _MoodHomePageState extends State<MoodHomePage> {
             DropdownButtonFormField<String>(
               decoration: InputDecoration(labelText: 'Select Mood'),
               value: selectedMood,
-              items: moods
-                  .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                  .toList(),
-              onChanged: isLoading
-                  ? null
-                  : (val) => setState(() => selectedMood = val),
+              items:
+                  moods
+                      .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                      .toList(),
+              onChanged:
+                  isLoading
+                      ? null
+                      : (val) => setState(() => selectedMood = val),
             ),
             TextField(
               controller: noteController,
@@ -351,13 +354,14 @@ class _MoodHomePageState extends State<MoodHomePage> {
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: isLoading ? null : addMoodEntry,
-              child: isLoading
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text('Log Mood'),
+              child:
+                  isLoading
+                      ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : Text('Log Mood'),
             ),
             Divider(height: 32),
             Row(
@@ -378,32 +382,34 @@ class _MoodHomePageState extends State<MoodHomePage> {
               ],
             ),
             Expanded(
-              child: isLoading && moodHistory.isEmpty
-                  ? Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      itemCount: moodHistory.length,
-                      itemBuilder: (context, index) {
-                        final entry = moodHistory[index];
-                        return ListTile(
-                          leading: Text(
-                            entry.mood,
-                            style: TextStyle(fontSize: 24),
-                          ),
-                          title: Text(
-                            entry.note.isEmpty ? 'No note' : entry.note,
-                          ),
-                          subtitle: Text(
-                            entry.timestamp.toLocal().toString().split(
-                                  '.',
-                                )[0],
-                          ),
-                          trailing: IconButton(
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _showDeleteConfirmation(entry.id!),
-                          ),
-                        );
-                      },
-                    ),
+              child:
+                  isLoading && moodHistory.isEmpty
+                      ? Center(child: CircularProgressIndicator())
+                      : ListView.builder(
+                        itemCount: moodHistory.length,
+                        itemBuilder: (context, index) {
+                          final entry = moodHistory[index];
+                          return ListTile(
+                            leading: Text(
+                              entry.mood,
+                              style: TextStyle(fontSize: 24),
+                            ),
+                            title: Text(
+                              entry.note.isEmpty ? 'No note' : entry.note,
+                            ),
+                            subtitle: Text(
+                              entry.timestamp.toLocal().toString().split(
+                                '.',
+                              )[0],
+                            ),
+                            trailing: IconButton(
+                              icon: Icon(Icons.delete, color: Colors.red),
+                              onPressed:
+                                  () => _showDeleteConfirmation(entry.id!),
+                            ),
+                          );
+                        },
+                      ),
             ),
           ],
         ),
