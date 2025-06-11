@@ -1,0 +1,20 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="512" cy="512" r="480" fill="#6366F1"/>
+  
+  <!-- Main emoji face -->
+  <circle cx="512" cy="512" r="300" fill="#FBBF24"/>
+  
+  <!-- Eyes -->
+  <circle cx="420" cy="420" r="40" fill="#1F2937"/>
+  <circle cx="604" cy="420" r="40" fill="#1F2937"/>
+  
+  <!-- Smile -->
+  <path d="M 350 580 Q 512 720 674 580" stroke="#1F2937" stroke-width="20" fill="none" stroke-linecap="round"/>
+  
+  <!-- Mood indicators around the face -->
+  <circle cx="200" cy="300" r="30" fill="#EF4444"/>  <!-- Angry -->
+  <circle cx="824" cy="300" r="30" fill="#3B82F6"/>  <!-- Sad -->
+  <circle cx="200" cy="724" r="30" fill="#10B981"/>  <!-- Happy -->
+  <circle cx="824" cy="724" r="30" fill="#F59E0B"/>  <!-- Neutral -->
+</svg>

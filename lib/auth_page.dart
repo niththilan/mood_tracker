@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
 import 'main.dart';
 
 class AuthPage extends StatefulWidget {
@@ -32,9 +33,20 @@ class _AuthPageState extends State<AuthPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error.message)));
-    } catch (error) {
+    } on SocketException {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unexpected error occurred: $error')),
+        SnackBar(
+          content: Text('Network error: Please check your internet connection and try again'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (error) {
+      String errorMessage = 'Unexpected error occurred: $error';
+      if (error.toString().contains('Failed host lookup')) {
+        errorMessage = 'Network connection error. Please check your internet connection and try again.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -66,9 +78,20 @@ class _AuthPageState extends State<AuthPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error.message)));
-    } catch (error) {
+    } on SocketException {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unexpected error occurred: $error')),
+        SnackBar(
+          content: Text('Network error: Please check your internet connection and try again'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (error) {
+      String errorMessage = 'Unexpected error occurred: $error';
+      if (error.toString().contains('Failed host lookup')) {
+        errorMessage = 'Network connection error. Please check your internet connection and try again.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
       );
     } finally {
       setState(() => _isLoading = false);
