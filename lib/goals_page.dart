@@ -1,12 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+class MoodCategory {
+  final int id;
+  final String name;
+  final String emoji;
+  final String colorHex;
+  final int moodScore;
+  final String? description;
+
+  MoodCategory({
+    required this.id,
+    required this.name,
+    required this.emoji,
+    required this.colorHex,
+    required this.moodScore,
+    this.description,
+  });
+
+  factory MoodCategory.fromJson(Map<String, dynamic> json) {
+    return MoodCategory(
+      id: json['id'],
+      name: json['name'],
+      emoji: json['emoji'],
+      colorHex: json['color_hex'],
+      moodScore: json['mood_score'],
+      description: json['description'],
+    );
+  }
+
+  String get displayName => '$emoji $name';
+}
+
 class Goal {
   final String id;
   final String title;
   final String description;
   final int targetDays;
-  final String targetMood;
+  final MoodCategory? targetMoodCategory;
+  final int targetMoodCategoryId;
   final int currentProgress;
   final bool isCompleted;
   final DateTime createdAt;
@@ -17,7 +49,8 @@ class Goal {
     required this.title,
     required this.description,
     required this.targetDays,
-    required this.targetMood,
+    this.targetMoodCategory,
+    required this.targetMoodCategoryId,
     required this.currentProgress,
     required this.isCompleted,
     required this.createdAt,
@@ -30,7 +63,11 @@ class Goal {
       title: json['title'],
       description: json['description'] ?? '',
       targetDays: json['target_days'],
-      targetMood: json['target_mood'],
+      targetMoodCategory:
+          json['mood_categories'] != null
+              ? MoodCategory.fromJson(json['mood_categories'])
+              : null,
+      targetMoodCategoryId: json['target_mood_category_id'],
       currentProgress: json['current_progress'] ?? 0,
       isCompleted: json['is_completed'] ?? false,
       createdAt: DateTime.parse(json['created_at']),
@@ -49,20 +86,55 @@ class GoalsPage extends StatefulWidget {
 
 class _GoalsPageState extends State<GoalsPage> with TickerProviderStateMixin {
   List<Goal> goals = [];
+  List<MoodCategory> moodCategories = [];
   bool isLoading = true;
   final supabase = Supabase.instance.client;
 
   @override
   void initState() {
     super.initState();
-    _loadGoals();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([_loadMoodCategories(), _loadGoals()]);
+  }
+
+  Future<void> _loadMoodCategories() async {
+    try {
+      final response = await supabase
+          .from('mood_categories')
+          .select()
+          .order('name');
+
+      setState(() {
+        moodCategories =
+            (response as List)
+                .map((json) => MoodCategory.fromJson(json))
+                .toList();
+      });
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading mood categories: $error')),
+      );
+    }
   }
 
   Future<void> _loadGoals() async {
     try {
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        setState(() {
+          goals = [];
+          isLoading = false;
+        });
+        return;
+      }
+
       final response = await supabase
           .from('mood_goals')
-          .select()
+          .select('*, mood_categories(*)')
+          .eq('user_id', user.id)
           .order('created_at', ascending: false);
 
       setState(() {
@@ -81,14 +153,23 @@ class _GoalsPageState extends State<GoalsPage> with TickerProviderStateMixin {
     String title,
     String description,
     int targetDays,
-    String targetMood,
+    int targetMoodCategoryId,
   ) async {
     try {
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please log in to create goals')),
+        );
+        return;
+      }
+
       await supabase.from('mood_goals').insert({
+        'user_id': user.id,
         'title': title,
         'description': description,
         'target_days': targetDays,
-        'target_mood': targetMood,
+        'target_mood_category_id': targetMoodCategoryId,
       });
 
       _loadGoals(); // Refresh the list
@@ -103,9 +184,18 @@ class _GoalsPageState extends State<GoalsPage> with TickerProviderStateMixin {
   }
 
   void _showCreateGoalDialog() {
+    // Check if user is authenticated
+    if (supabase.auth.currentUser == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Please log in to create goals')));
+      return;
+    }
+
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
-    String selectedMood = '😊 Happy';
+    MoodCategory? selectedMoodCategory =
+        moodCategories.isNotEmpty ? moodCategories.first : null;
     int targetDays = 7;
 
     showDialog(
@@ -128,25 +218,19 @@ class _GoalsPageState extends State<GoalsPage> with TickerProviderStateMixin {
                     maxLines: 2,
                   ),
                   SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedMood,
+                  DropdownButtonFormField<MoodCategory>(
+                    value: selectedMoodCategory,
                     decoration: InputDecoration(labelText: 'Target Mood'),
                     items:
-                        [
-                              '😊 Happy',
-                              '😢 Sad',
-                              '😡 Angry',
-                              '😰 Anxious',
-                              '😐 Neutral',
-                            ]
+                        moodCategories
                             .map(
-                              (mood) => DropdownMenuItem(
-                                value: mood,
-                                child: Text(mood),
+                              (category) => DropdownMenuItem(
+                                value: category,
+                                child: Text(category.displayName),
                               ),
                             )
                             .toList(),
-                    onChanged: (value) => selectedMood = value!,
+                    onChanged: (value) => selectedMoodCategory = value,
                   ),
                   SizedBox(height: 16),
                   DropdownButtonFormField<int>(
@@ -173,12 +257,13 @@ class _GoalsPageState extends State<GoalsPage> with TickerProviderStateMixin {
               ),
               ElevatedButton(
                 onPressed: () {
-                  if (titleController.text.isNotEmpty) {
+                  if (titleController.text.isNotEmpty &&
+                      selectedMoodCategory != null) {
                     _createGoal(
                       titleController.text,
                       descriptionController.text,
                       targetDays,
-                      selectedMood,
+                      selectedMoodCategory!.id,
                     );
                     Navigator.pop(context);
                   }
@@ -238,6 +323,10 @@ class _GoalsPageState extends State<GoalsPage> with TickerProviderStateMixin {
     double progress = goal.currentProgress / goal.targetDays;
     if (progress > 1.0) progress = 1.0;
 
+    final targetMoodDisplay =
+        goal.targetMoodCategory?.displayName ?? 'Unknown Mood';
+    final targetMoodEmoji = goal.targetMoodCategory?.emoji ?? '😐';
+
     return Card(
       margin: EdgeInsets.only(bottom: 16),
       child: Padding(
@@ -247,10 +336,7 @@ class _GoalsPageState extends State<GoalsPage> with TickerProviderStateMixin {
           children: [
             Row(
               children: [
-                Text(
-                  goal.targetMood.split(' ')[0], // Just the emoji
-                  style: TextStyle(fontSize: 24),
-                ),
+                Text(targetMoodEmoji, style: TextStyle(fontSize: 24)),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -292,7 +378,7 @@ class _GoalsPageState extends State<GoalsPage> with TickerProviderStateMixin {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Target: ${goal.targetMood}',
+                  'Target: $targetMoodDisplay',
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
                 Text(
