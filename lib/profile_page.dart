@@ -10,6 +10,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage>
     with TickerProviderStateMixin {
   final _nameController = TextEditingController();
+  final _ageController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final supabase = Supabase.instance.client;
 
@@ -17,6 +18,7 @@ class _ProfilePageState extends State<ProfilePage>
   bool _isSaving = false;
   String _selectedAvatar = '😊';
   String _selectedColor = '#4CAF50';
+  String? _selectedGender;
 
   late AnimationController _animationController;
   late AnimationController _saveAnimationController;
@@ -56,6 +58,7 @@ class _ProfilePageState extends State<ProfilePage>
     _animationController.dispose();
     _saveAnimationController.dispose();
     _nameController.dispose();
+    _ageController.dispose();
     super.dispose();
   }
 
@@ -70,6 +73,8 @@ class _ProfilePageState extends State<ProfilePage>
     if (profile != null) {
       setState(() {
         _nameController.text = profile['name'] ?? '';
+        _ageController.text = profile['age']?.toString() ?? '';
+        _selectedGender = profile['gender'];
         _selectedAvatar = profile['avatar_emoji'] ?? '😊';
         _selectedColor = profile['color'] ?? '#4CAF50';
         _isLoading = false;
@@ -93,6 +98,11 @@ class _ProfilePageState extends State<ProfilePage>
     final success = await UserProfileService.updateUserProfile(
       userId: userId,
       name: _nameController.text.trim(),
+      age:
+          _ageController.text.trim().isNotEmpty
+              ? int.tryParse(_ageController.text.trim())
+              : null,
+      gender: _selectedGender,
       avatarEmoji: _selectedAvatar,
       color: _selectedColor,
     );
@@ -149,6 +159,23 @@ class _ProfilePageState extends State<ProfilePage>
     }
     if (value.trim().length > 50) {
       return 'Name must be less than 50 characters';
+    }
+    return null;
+  }
+
+  String? _validateAge(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null; // Age is optional
+    }
+    final age = int.tryParse(value.trim());
+    if (age == null) {
+      return 'Please enter a valid age';
+    }
+    if (age < 13) {
+      return 'Age must be at least 13';
+    }
+    if (age > 120) {
+      return 'Please enter a valid age';
     }
     return null;
   }
@@ -214,10 +241,31 @@ class _ProfilePageState extends State<ProfilePage>
           children: [
             // Avatar Preview
             _buildAvatarPreview(),
+            SizedBox(height: 24),
+
+            // Profile Info Display
+            _buildProfileInfoDisplay(),
             SizedBox(height: 32),
+
+            // Edit Profile Section Header
+            Text(
+              'Edit Profile',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
 
             // Name Field
             _buildNameField(),
+            SizedBox(height: 24),
+
+            // Age Field
+            _buildAgeField(),
+            SizedBox(height: 24),
+
+            // Gender Field
+            _buildGenderField(),
             SizedBox(height: 24),
 
             // Avatar Selection
@@ -261,23 +309,195 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Widget _buildNameField() {
-    return TextFormField(
-      controller: _nameController,
-      validator: _validateName,
-      enabled: !_isSaving,
-      textCapitalization: TextCapitalization.words,
-      decoration: InputDecoration(
-        labelText: 'Display Name',
-        hintText: 'Enter your display name',
-        prefixIcon: Icon(Icons.person_outline),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-            width: 2,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow:
+            _nameController.text.isNotEmpty
+                ? [
+                  BoxShadow(
+                    color: Colors.green.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+                : null,
+      ),
+      child: TextFormField(
+        controller: _nameController,
+        validator: _validateName,
+        enabled: !_isSaving,
+        textCapitalization: TextCapitalization.words,
+        decoration: InputDecoration(
+          labelText: 'Display Name',
+          hintText: 'Enter your display name',
+          prefixIcon: Icon(
+            Icons.person_outline,
+            color:
+                _nameController.text.isNotEmpty
+                    ? Colors.green
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          suffixIcon:
+              _nameController.text.isNotEmpty
+                  ? const Icon(Icons.check_circle, color: Colors.green)
+                  : null,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color:
+                  _nameController.text.isNotEmpty
+                      ? Colors.green
+                      : Theme.of(context).colorScheme.outline,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.primary,
+              width: 2,
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAgeField() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow:
+            _ageController.text.isNotEmpty
+                ? [
+                  BoxShadow(
+                    color: Colors.green.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+                : null,
+      ),
+      child: TextFormField(
+        controller: _ageController,
+        validator: _validateAge,
+        enabled: !_isSaving,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          labelText: 'Age',
+          hintText: 'Enter your age (optional)',
+          prefixIcon: Icon(
+            Icons.cake_outlined,
+            color:
+                _ageController.text.isNotEmpty
+                    ? Colors.green
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          suffixIcon:
+              _ageController.text.isNotEmpty
+                  ? const Icon(Icons.check_circle, color: Colors.green)
+                  : null,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color:
+                  _ageController.text.isNotEmpty
+                      ? Colors.green
+                      : Theme.of(context).colorScheme.outline,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.primary,
+              width: 2,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGenderField() {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 400),
+      child: DropdownButtonFormField<String>(
+        value: _selectedGender,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: 'Gender',
+          hintText: 'Select your gender (optional)',
+          prefixIcon: Icon(
+            Icons.person_pin_outlined,
+            color:
+                _selectedGender != null
+                    ? Colors.green
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          suffixIcon:
+              _selectedGender != null
+                  ? const Icon(Icons.check_circle, color: Colors.green)
+                  : null,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color:
+                  _selectedGender != null
+                      ? Colors.green
+                      : Theme.of(context).colorScheme.outline,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.primary,
+              width: 2,
+            ),
+          ),
+        ),
+        items: [
+          DropdownMenuItem(
+            value: 'male',
+            child: SizedBox(
+              width: double.infinity,
+              child: Text('Male', overflow: TextOverflow.ellipsis),
+            ),
+          ),
+          DropdownMenuItem(
+            value: 'female',
+            child: SizedBox(
+              width: double.infinity,
+              child: Text('Female', overflow: TextOverflow.ellipsis),
+            ),
+          ),
+          DropdownMenuItem(
+            value: 'non-binary',
+            child: SizedBox(
+              width: double.infinity,
+              child: Text('Non-binary', overflow: TextOverflow.ellipsis),
+            ),
+          ),
+          DropdownMenuItem(
+            value: 'prefer-not-to-say',
+            child: SizedBox(
+              width: double.infinity,
+              child: Text('Prefer not to say', overflow: TextOverflow.ellipsis),
+            ),
+          ),
+        ],
+        onChanged:
+            _isSaving
+                ? null
+                : (value) {
+                  setState(() {
+                    _selectedGender = value;
+                  });
+                },
       ),
     );
   }
@@ -470,5 +690,115 @@ class _ProfilePageState extends State<ProfilePage>
         );
       },
     );
+  }
+
+  Widget _buildProfileInfoDisplay() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Profile Information',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            _buildInfoRow(
+              'Name',
+              _nameController.text.isNotEmpty
+                  ? _nameController.text
+                  : 'Not set',
+              Icons.person_outline,
+            ),
+            if (_ageController.text.isNotEmpty)
+              _buildInfoRow(
+                'Age',
+                '${_ageController.text} years old',
+                Icons.cake_outlined,
+              ),
+            if (_selectedGender != null)
+              _buildInfoRow(
+                'Gender',
+                _formatGenderText(_selectedGender!),
+                Icons.person_pin_outlined,
+              ),
+            _buildInfoRow(
+              'Member since',
+              _formatMemberSince(),
+              Icons.calendar_today_outlined,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          SizedBox(width: 12),
+          Text(
+            '$label: ',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Expanded(
+            child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatGenderText(String gender) {
+    switch (gender) {
+      case 'male':
+        return 'Male';
+      case 'female':
+        return 'Female';
+      case 'non-binary':
+        return 'Non-binary';
+      case 'prefer-not-to-say':
+        return 'Prefer not to say';
+      default:
+        return gender;
+    }
+  }
+
+  String _formatMemberSince() {
+    final user = supabase.auth.currentUser;
+    if (user?.createdAt != null) {
+      final date = DateTime.parse(user!.createdAt);
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${months[date.month - 1]} ${date.year}';
+    }
+    return 'Unknown';
   }
 }
