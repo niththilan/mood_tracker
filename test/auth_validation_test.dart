@@ -1,14 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mood_tracker/auth_page.dart';
 
 void main() {
   group('Auth Page Validation Tests', () {
-    late _AuthPageState authPageState;
-
     setUp(() {
-      // Note: These are private methods, so this is a conceptual test
-      // In a real implementation, you might want to extract validation
-      // logic to a separate service for easier testing
+      // Note: These validation functions are extracted for testing purposes
+      // They mirror the actual validation logic used in AuthPage
     });
 
     test('Age validation should work correctly', () {
