@@ -21,37 +21,38 @@ class ChatSelectionPage extends StatelessWidget {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          child: AnimationLimiter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          physics: ClampingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: AnimationLimiter(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                  SizedBox(height: 20),
                   Text(
                     'Choose Chat Type',
                     style: GoogleFonts.poppins(
-                      fontSize: 26,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 12),
+                  SizedBox(height: 8),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       'Select how you want to connect with others',
                       style: GoogleFonts.poppins(
-                        fontSize: 15,
+                        fontSize: 14,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.3,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  SizedBox(height: 40),
+                  SizedBox(height: 24),
 
                   // Community Chat Option
                   AnimationConfiguration.staggeredList(
@@ -94,7 +95,8 @@ class ChatSelectionPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                  SizedBox(height: 20),
+                  SizedBox(height: 20),
                 ],
               ),
             ),
@@ -112,79 +114,64 @@ class ChatSelectionPage extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.35,
-      ),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            onTap();
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [color, color.withValues(alpha: 0.7)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color,
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Icon(icon, size: 35, color: Colors.white),
+                  ],
                 ),
-                SizedBox(height: 16),
-                Flexible(
-                  child: Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                child: Icon(icon, size: 28, color: Colors.white),
+              ),
+              SizedBox(height: 12),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
-                SizedBox(height: 6),
-                Flexible(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      subtitle,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: 6),
+              Text(
+                subtitle,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.2,
                 ),
-                SizedBox(height: 12),
-                Icon(Icons.arrow_forward_rounded, color: color, size: 24),
-              ],
-            ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: 8),
+              Icon(Icons.arrow_forward_rounded, color: color, size: 18),
+            ],
           ),
         ),
       ),

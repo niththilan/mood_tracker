@@ -1240,80 +1240,106 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 SizedBox(width: 8),
-                Text(
-                  'Community Guidelines',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    'Community Guidelines',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Text('🌟', style: TextStyle(fontSize: 20)),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Welcome to our supportive community!',
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w500,
+            content: Container(
+              width: double.maxFinite,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.6,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Text('🌟', style: TextStyle(fontSize: 18)),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Welcome to our supportive community!',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Guidelines:',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                SizedBox(height: 8),
-                ...[
-                  '• Be kind and respectful to everyone',
-                  '• Share your experiences openly and honestly',
-                  '• Support others in their wellness journey',
-                  '• Keep conversations positive and constructive',
-                  '• Report any inappropriate behavior',
-                  '• Remember: we\'re all here to help each other',
-                ].map(
-                  (guideline) => Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2),
-                    child: Text(guideline, style: TextStyle(height: 1.4)),
-                  ),
-                ),
-                SizedBox(height: 16),
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Text('💡', style: TextStyle(fontSize: 16)),
-                      SizedBox(width: 8),
-                      Expanded(
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'Guidelines:',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    ...[
+                      '• Be kind and respectful to everyone',
+                      '• Share your experiences openly and honestly',
+                      '• Support others in their wellness journey',
+                      '• Keep conversations positive and constructive',
+                      '• Report any inappropriate behavior',
+                      '• Remember: we\'re all here to help each other',
+                    ].map(
+                      (guideline) => Padding(
+                        padding: EdgeInsets.symmetric(vertical: 2),
                         child: Text(
-                          'Long press on messages for quick reactions!\nDouble tap to add a heart ❤️',
-                          style: TextStyle(fontSize: 12, height: 1.3),
+                          guideline,
+                          style: TextStyle(height: 1.3, fontSize: 13),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    SizedBox(height: 12),
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('💡', style: TextStyle(fontSize: 16)),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Long press on messages for quick reactions!\nDouble tap to add a heart ❤️',
+                              style: TextStyle(fontSize: 12, height: 1.3),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
             actions: [
               TextButton(
@@ -1323,7 +1349,10 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                 },
                 child: Text(
                   'Got it! 👍',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ],
