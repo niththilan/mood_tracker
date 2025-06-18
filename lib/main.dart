@@ -10,6 +10,7 @@ import 'goals_page.dart';
 import 'auth_page.dart';
 import 'onboarding_screen.dart';
 import 'chat_page.dart';
+import 'chat_selection_page.dart';
 import 'quick_mood_entry.dart';
 import 'mood_journal.dart';
 import 'profile_page.dart';
@@ -1657,7 +1658,7 @@ class _MoodHomePageState extends State<MoodHomePage>
                       color: Theme.of(context).colorScheme.secondary,
                     ),
                   ),
-                  tooltip: 'Community Chat',
+                  tooltip: 'Chat Options',
                   onPressed: () {
                     HapticFeedback.lightImpact();
                     Navigator.push(
@@ -1665,7 +1666,7 @@ class _MoodHomePageState extends State<MoodHomePage>
                       PageRouteBuilder(
                         pageBuilder:
                             (context, animation, secondaryAnimation) =>
-                                ChatPage(),
+                                ChatSelectionPage(),
                         transitionsBuilder: (
                           context,
                           animation,
