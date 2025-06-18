@@ -308,30 +308,59 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
 
       if (response.user != null && mounted) {
         // Create user profile
-        await UserProfileService.createUserProfile(
+        final profileCreated = await UserProfileService.createUserProfile(
           userId: response.user!.id,
           name: _nameController.text.trim(),
           age: int.tryParse(_ageController.text.trim()),
           gender: _selectedGender,
         );
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.email, color: Colors.white),
-                SizedBox(width: 8),
-                Expanded(child: Text('Check your email for verification link')),
-              ],
+        if (profileCreated) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Account created successfully! Check your email for verification link',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+          );
+          setState(() => _isLogin = true);
+        } else {
+          // Profile creation failed, show error
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.white),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Account created but profile setup failed. Please try logging in and update your profile.',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-        );
-        setState(() => _isLogin = true);
+          );
+          setState(() => _isLogin = true);
+        }
       }
     } on AuthException catch (error) {
       if (mounted) {

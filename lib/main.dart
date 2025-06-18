@@ -12,6 +12,7 @@ import 'chat_page.dart';
 import 'quick_mood_entry.dart';
 import 'mood_journal.dart';
 import 'profile_page.dart';
+import 'services/user_profile_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -106,13 +107,25 @@ class _AuthWrapperState extends State<AuthWrapper> {
     _session = Supabase.instance.client.auth.currentSession;
 
     // Listen to auth changes
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
       if (mounted) {
         setState(() {
           _session = data.session;
         });
+
+        // Ensure user profile exists when user logs in
+        if (data.session?.user != null) {
+          print('User authenticated, ensuring profile exists...');
+          await UserProfileService.ensureUserProfile(data.session!.user.id);
+        }
       }
     });
+
+    // If there's an existing session, ensure profile exists
+    if (_session?.user != null) {
+      print('Existing session found, ensuring profile exists...');
+      await UserProfileService.ensureUserProfile(_session!.user.id);
+    }
 
     setState(() {
       _isInitialized = true;
@@ -248,6 +261,17 @@ class _MoodHomePageState extends State<MoodHomePage>
     ).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
     );
+
+    // Ensure user profile exists and load mood history
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Ensure user profile exists
+    final userId = supabase.auth.currentUser?.id;
+    if (userId != null) {
+      await UserProfileService.ensureUserProfile(userId);
+    }
 
     // Load mood history and start animations
     _loadMoodHistory();

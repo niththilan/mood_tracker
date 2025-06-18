@@ -64,13 +64,19 @@ class _ProfilePageState extends State<ProfilePage>
 
   Future<void> _loadUserProfile() async {
     final userId = supabase.auth.currentUser?.id;
-    if (userId == null) return;
+    if (userId == null) {
+      print('No current user found');
+      setState(() => _isLoading = false);
+      return;
+    }
 
+    print('Loading profile for user: $userId');
     setState(() => _isLoading = true);
 
     final profile = await UserProfileService.getUserProfile(userId);
 
     if (profile != null) {
+      print('Profile loaded successfully: $profile');
       setState(() {
         _nameController.text = profile['name'] ?? '';
         _ageController.text = profile['age']?.toString() ?? '';
@@ -80,7 +86,27 @@ class _ProfilePageState extends State<ProfilePage>
         _isLoading = false;
       });
     } else {
-      setState(() => _isLoading = false);
+      print('No profile found, creating default profile...');
+      // Try to create a default profile if none exists
+      final success = await UserProfileService.ensureUserProfile(userId);
+      if (success) {
+        // Retry loading the profile
+        final newProfile = await UserProfileService.getUserProfile(userId);
+        if (newProfile != null) {
+          setState(() {
+            _nameController.text = newProfile['name'] ?? '';
+            _ageController.text = newProfile['age']?.toString() ?? '';
+            _selectedGender = newProfile['gender'];
+            _selectedAvatar = newProfile['avatar_emoji'] ?? '😊';
+            _selectedColor = newProfile['color'] ?? '#4CAF50';
+            _isLoading = false;
+          });
+        } else {
+          setState(() => _isLoading = false);
+        }
+      } else {
+        setState(() => _isLoading = false);
+      }
     }
 
     _animationController.forward();
@@ -95,17 +121,37 @@ class _ProfilePageState extends State<ProfilePage>
     setState(() => _isSaving = true);
     _saveAnimationController.forward();
 
-    final success = await UserProfileService.updateUserProfile(
-      userId: userId,
-      name: _nameController.text.trim(),
-      age:
-          _ageController.text.trim().isNotEmpty
-              ? int.tryParse(_ageController.text.trim())
-              : null,
-      gender: _selectedGender,
-      avatarEmoji: _selectedAvatar,
-      color: _selectedColor,
-    );
+    // First check if profile exists
+    final existingProfile = await UserProfileService.getUserProfile(userId);
+    bool success = false;
+
+    if (existingProfile != null) {
+      // Update existing profile
+      success = await UserProfileService.updateUserProfile(
+        userId: userId,
+        name: _nameController.text.trim(),
+        age:
+            _ageController.text.trim().isNotEmpty
+                ? int.tryParse(_ageController.text.trim())
+                : null,
+        gender: _selectedGender,
+        avatarEmoji: _selectedAvatar,
+        color: _selectedColor,
+      );
+    } else {
+      // Create new profile
+      success = await UserProfileService.createUserProfile(
+        userId: userId,
+        name: _nameController.text.trim(),
+        age:
+            _ageController.text.trim().isNotEmpty
+                ? int.tryParse(_ageController.text.trim())
+                : null,
+        gender: _selectedGender,
+        avatarEmoji: _selectedAvatar,
+        color: _selectedColor,
+      );
+    }
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -114,7 +160,9 @@ class _ProfilePageState extends State<ProfilePage>
             children: [
               Icon(Icons.check_circle, color: Colors.white),
               SizedBox(width: 8),
-              Text('Profile updated successfully!'),
+              Text(
+                'Profile ${existingProfile != null ? 'updated' : 'created'} successfully!',
+              ),
             ],
           ),
           backgroundColor: Colors.green,
