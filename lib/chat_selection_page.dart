@@ -6,6 +6,8 @@ import 'chat_page.dart';
 import 'conversations_page.dart';
 
 class ChatSelectionPage extends StatelessWidget {
+  const ChatSelectionPage({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -17,72 +19,85 @@ class ChatSelectionPage extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
       ),
-      body: AnimationLimiter(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Choose Chat Type',
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Select how you want to connect with others',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 48),
-
-              // Community Chat Option
-              AnimationConfiguration.staggeredList(
-                position: 0,
-                duration: Duration(milliseconds: 375),
-                child: SlideAnimation(
-                  verticalOffset: 50.0,
-                  child: FadeInAnimation(
-                    child: _buildChatOption(
-                      context: context,
-                      title: 'Community Chat',
-                      subtitle: 'Join the public conversation with everyone',
-                      icon: Icons.groups_rounded,
-                      color: Theme.of(context).colorScheme.primary,
-                      onTap: () => _openCommunityChat(context),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: AnimationLimiter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                  Text(
+                    'Choose Chat Type',
+                    style: GoogleFonts.poppins(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 12),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'Select how you want to connect with others',
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                ),
-              ),
+                  SizedBox(height: 40),
 
-              SizedBox(height: 24),
-
-              // Private Chat Option
-              AnimationConfiguration.staggeredList(
-                position: 1,
-                duration: Duration(milliseconds: 375),
-                child: SlideAnimation(
-                  verticalOffset: 50.0,
-                  child: FadeInAnimation(
-                    child: _buildChatOption(
-                      context: context,
-                      title: 'Private Messages',
-                      subtitle: 'Have personal conversations with individuals',
-                      icon: Icons.message_rounded,
-                      color: Theme.of(context).colorScheme.secondary,
-                      onTap: () => _openPrivateMessages(context),
+                  // Community Chat Option
+                  AnimationConfiguration.staggeredList(
+                    position: 0,
+                    duration: Duration(milliseconds: 375),
+                    child: SlideAnimation(
+                      verticalOffset: 50.0,
+                      child: FadeInAnimation(
+                        child: _buildChatOption(
+                          context: context,
+                          title: 'Community Chat',
+                          subtitle:
+                              'Join the public conversation with everyone',
+                          icon: Icons.groups_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                          onTap: () => _openCommunityChat(context),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+
+                  SizedBox(height: 20),
+
+                  // Private Chat Option
+                  AnimationConfiguration.staggeredList(
+                    position: 1,
+                    duration: Duration(milliseconds: 375),
+                    child: SlideAnimation(
+                      verticalOffset: 50.0,
+                      child: FadeInAnimation(
+                        child: _buildChatOption(
+                          context: context,
+                          title: 'Private Messages',
+                          subtitle:
+                              'Have personal conversations with individuals',
+                          icon: Icons.message_rounded,
+                          color: Theme.of(context).colorScheme.secondary,
+                          onTap: () => _openPrivateMessages(context),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -99,6 +114,9 @@ class ChatSelectionPage extends StatelessWidget {
   }) {
     return Container(
       width: double.infinity,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.35,
+      ),
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -109,50 +127,62 @@ class ChatSelectionPage extends StatelessWidget {
           },
           borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: EdgeInsets.all(24),
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 80,
-                  height: 80,
+                  width: 70,
+                  height: 70,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
-                      colors: [color, color.withOpacity(0.7)],
+                      colors: [color, color.withValues(alpha: 0.7)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: color.withOpacity(0.3),
+                        color: color.withValues(alpha: 0.3),
                         blurRadius: 20,
                         offset: Offset(0, 10),
                       ),
                     ],
                   ),
-                  child: Icon(icon, size: 40, color: Colors.white),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
+                  child: Icon(icon, size: 35, color: Colors.white),
                 ),
                 SizedBox(height: 16),
-                Icon(Icons.arrow_forward_rounded, color: color, size: 28),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Flexible(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      subtitle,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12),
+                Icon(Icons.arrow_forward_rounded, color: color, size: 24),
               ],
             ),
           ),

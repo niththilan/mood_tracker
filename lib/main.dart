@@ -9,7 +9,6 @@ import 'enhanced_analytics_page.dart';
 import 'goals_page.dart';
 import 'auth_page.dart';
 import 'onboarding_screen.dart';
-import 'chat_page.dart';
 import 'chat_selection_page.dart';
 import 'quick_mood_entry.dart';
 import 'mood_journal.dart';
