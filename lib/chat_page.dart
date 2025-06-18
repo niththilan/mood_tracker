@@ -89,11 +89,15 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
 
     // Set up real-time message listener based on chat type
     if (widget.isPrivateChat) {
-      _messagesSubscription = _chatService.privateMessagesStream.listen((messagesData) {
+      _messagesSubscription = _chatService.privateMessagesStream.listen((
+        messagesData,
+      ) {
         _updateMessagesFromData(messagesData);
       });
     } else {
-      _messagesSubscription = _chatService.publicMessagesStream.listen((messagesData) {
+      _messagesSubscription = _chatService.publicMessagesStream.listen((
+        messagesData,
+      ) {
         _updateMessagesFromData(messagesData);
       });
     }
@@ -108,13 +112,15 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   Future<void> _loadMessages() async {
     try {
       List<Map<String, dynamic>> messagesData;
-      
+
       if (widget.isPrivateChat && widget.conversationId != null) {
-        messagesData = await _chatService.getPrivateMessages(widget.conversationId!);
+        messagesData = await _chatService.getPrivateMessages(
+          widget.conversationId!,
+        );
       } else {
         messagesData = await _chatService.getPublicMessages();
       }
-      
+
       final List<ChatMessage> loadedMessages = [];
 
       for (final messageData in messagesData) {
@@ -263,11 +269,9 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   }
 
   void _openPrivateMessages() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ConversationsPage(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => ConversationsPage()));
   }
 
   @override
@@ -281,9 +285,9 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.isPrivateChat 
-                ? (widget.otherUser?.name ?? 'Private Chat')
-                : 'Community Chat',
+              widget.isPrivateChat
+                  ? (widget.otherUser?.name ?? 'Private Chat')
+                  : 'Community Chat',
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
@@ -291,8 +295,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             ),
             Text(
               widget.isPrivateChat
-                ? 'Private conversation'
-                : '${messages.length} messages',
+                  ? 'Private conversation'
+                  : '${messages.length} messages',
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.normal,
@@ -328,7 +332,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                 _showChatInfo();
               },
               tooltip: 'Chat guidelines',
-          ),
+            ),
         ],
       ),
       body: Stack(
@@ -1033,7 +1037,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                           Navigator.pop(context);
                           _sendMessage();
                         },
-                        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.secondaryContainer,
                         side: BorderSide.none,
                       );
                     }).toList(),

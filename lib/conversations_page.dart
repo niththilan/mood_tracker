@@ -38,7 +38,9 @@ class _ConversationsPageState extends State<ConversationsPage> {
     _chatService.initializeRealtime();
 
     // Set up conversations listener
-    _conversationsSubscription = _chatService.conversationsStream.listen((conversationsData) {
+    _conversationsSubscription = _chatService.conversationsStream.listen((
+      conversationsData,
+    ) {
       setState(() {
         conversations = conversationsData;
         isLoading = false;
@@ -67,16 +69,19 @@ class _ConversationsPageState extends State<ConversationsPage> {
 
   Future<void> _startNewConversation(UserProfile user) async {
     try {
-      final conversationId = await _chatService.createOrGetConversation(user.id);
+      final conversationId = await _chatService.createOrGetConversation(
+        user.id,
+      );
       if (conversationId != null) {
         _chatService.setCurrentConversation(conversationId);
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => ChatPage(
-              isPrivateChat: true,
-              conversationId: conversationId,
-              otherUser: user,
-            ),
+            builder:
+                (context) => ChatPage(
+                  isPrivateChat: true,
+                  conversationId: conversationId,
+                  otherUser: user,
+                ),
           ),
         );
       }
@@ -90,16 +95,17 @@ class _ConversationsPageState extends State<ConversationsPage> {
   void _openConversation(PrivateConversation conversation) {
     final currentUserId = _chatService.supabase.auth.currentUser?.id;
     final otherUser = conversation.getOtherParticipant(currentUserId ?? '');
-    
+
     if (otherUser != null) {
       _chatService.setCurrentConversation(conversation.id);
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => ChatPage(
-            isPrivateChat: true,
-            conversationId: conversation.id,
-            otherUser: otherUser,
-          ),
+          builder:
+              (context) => ChatPage(
+                isPrivateChat: true,
+                conversationId: conversation.id,
+                otherUser: otherUser,
+              ),
         ),
       );
     }
@@ -119,10 +125,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
       appBar: AppBar(
         title: Text(
           'Messages',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-            fontSize: 24,
-          ),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 24),
         ),
         backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
@@ -134,9 +137,10 @@ class _ConversationsPageState extends State<ConversationsPage> {
           ),
         ],
       ),
-      body: isLoading
-          ? _buildLoadingState()
-          : conversations.isEmpty
+      body:
+          isLoading
+              ? _buildLoadingState()
+              : conversations.isEmpty
               ? _buildEmptyState()
               : _buildConversationsList(),
     );
@@ -173,7 +177,9 @@ class _ConversationsPageState extends State<ConversationsPage> {
           Icon(
             Icons.chat_bubble_outline_rounded,
             size: 80,
-            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant.withOpacity(0.5),
           ),
           SizedBox(height: 24),
           Text(
@@ -189,7 +195,9 @@ class _ConversationsPageState extends State<ConversationsPage> {
             'Start a new conversation with someone!',
             style: GoogleFonts.poppins(
               fontSize: 16,
-              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withOpacity(0.7),
             ),
             textAlign: TextAlign.center,
           ),
@@ -218,7 +226,9 @@ class _ConversationsPageState extends State<ConversationsPage> {
         itemBuilder: (context, index) {
           final conversation = conversations[index];
           final currentUserId = _chatService.supabase.auth.currentUser?.id;
-          final otherUser = conversation.getOtherParticipant(currentUserId ?? '');
+          final otherUser = conversation.getOtherParticipant(
+            currentUserId ?? '',
+          );
 
           if (otherUser == null) return SizedBox.shrink();
 
@@ -267,13 +277,17 @@ class _ConversationsPageState extends State<ConversationsPage> {
                         'Tap to chat',
                         style: GoogleFonts.poppins(
                           fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withOpacity(0.7),
                         ),
                       ),
                       trailing: Icon(
                         Icons.arrow_forward_ios_rounded,
                         size: 16,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withOpacity(0.5),
                       ),
                       onTap: () {
                         HapticFeedback.lightImpact();
@@ -296,65 +310,71 @@ class _ConversationsPageState extends State<ConversationsPage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Start New Conversation',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 16),
-            Expanded(
-              child: allUsers.isEmpty
-                  ? Center(child: Text('No users available'))
-                  : ListView.builder(
-                      itemCount: allUsers.length,
-                      itemBuilder: (context, index) {
-                        final user = allUsers[index];
-                        return ListTile(
-                          leading: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _hexToColor(user.colorHex),
-                            ),
-                            child: Center(
-                              child: Text(
-                                user.avatarEmoji,
-                                style: TextStyle(fontSize: 20),
-                              ),
-                            ),
+      builder:
+          (context) => Container(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Start New Conversation',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 16),
+                Expanded(
+                  child:
+                      allUsers.isEmpty
+                          ? Center(child: Text('No users available'))
+                          : ListView.builder(
+                            itemCount: allUsers.length,
+                            itemBuilder: (context, index) {
+                              final user = allUsers[index];
+                              return ListTile(
+                                leading: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: _hexToColor(user.colorHex),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      user.avatarEmoji,
+                                      style: TextStyle(fontSize: 20),
+                                    ),
+                                  ),
+                                ),
+                                title: Text(
+                                  user.name,
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  _startNewConversation(user);
+                                },
+                              );
+                            },
                           ),
-                          title: Text(
-                            user.name,
-                            style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
-                          ),
-                          onTap: () {
-                            Navigator.pop(context);
-                            _startNewConversation(user);
-                          },
-                        );
-                      },
-                    ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 }

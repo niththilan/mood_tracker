@@ -77,12 +77,14 @@ class PrivateConversation {
       participant2Id: json['participant_2_id'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
-      participant1Profile: json['participant_1_profile'] != null
-          ? UserProfile.fromJson(json['participant_1_profile'])
-          : null,
-      participant2Profile: json['participant_2_profile'] != null
-          ? UserProfile.fromJson(json['participant_2_profile'])
-          : null,
+      participant1Profile:
+          json['participant_1_profile'] != null
+              ? UserProfile.fromJson(json['participant_1_profile'])
+              : null,
+      participant2Profile:
+          json['participant_2_profile'] != null
+              ? UserProfile.fromJson(json['participant_2_profile'])
+              : null,
     );
   }
 

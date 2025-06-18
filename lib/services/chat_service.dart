@@ -8,7 +8,8 @@ class ChatService {
   // Stream controllers for real-time messages
   final StreamController<List<Map<String, dynamic>>> _publicMessagesController =
       StreamController<List<Map<String, dynamic>>>.broadcast();
-  final StreamController<List<Map<String, dynamic>>> _privateMessagesController =
+  final StreamController<List<Map<String, dynamic>>>
+  _privateMessagesController =
       StreamController<List<Map<String, dynamic>>>.broadcast();
   final StreamController<List<PrivateConversation>> _conversationsController =
       StreamController<List<PrivateConversation>>.broadcast();
@@ -60,9 +61,11 @@ class ChatService {
                 // Reload public and private messages
                 final publicMessages = await getPublicMessages();
                 _publicMessagesController.add(publicMessages);
-                
+
                 if (_currentConversationId != null) {
-                  final privateMessages = await getPrivateMessages(_currentConversationId!);
+                  final privateMessages = await getPrivateMessages(
+                    _currentConversationId!,
+                  );
                   _privateMessagesController.add(privateMessages);
                 }
               },
@@ -98,9 +101,11 @@ class ChatService {
                 // Reload messages to get updated reactions
                 final publicMessages = await getPublicMessages();
                 _publicMessagesController.add(publicMessages);
-                
+
                 if (_currentConversationId != null) {
-                  final privateMessages = await getPrivateMessages(_currentConversationId!);
+                  final privateMessages = await getPrivateMessages(
+                    _currentConversationId!,
+                  );
                   _privateMessagesController.add(privateMessages);
                 }
               },
@@ -149,7 +154,9 @@ class ChatService {
   }
 
   // Get private messages for a specific conversation
-  Future<List<Map<String, dynamic>>> getPrivateMessages(String conversationId) async {
+  Future<List<Map<String, dynamic>>> getPrivateMessages(
+    String conversationId,
+  ) async {
     try {
       final response = await _supabase
           .from('chat_messages')
@@ -205,7 +212,9 @@ class ChatService {
               color
             )
           ''')
-          .or('participant_1_id.eq.$currentUserId,participant_2_id.eq.$currentUserId')
+          .or(
+            'participant_1_id.eq.$currentUserId,participant_2_id.eq.$currentUserId',
+          )
           .order('updated_at', ascending: false);
 
       return response.map<PrivateConversation>((conv) {
@@ -245,30 +254,38 @@ class ChatService {
       if (currentUserId == null) return null;
 
       // Ensure participant IDs are ordered consistently
-      final participant1 = currentUserId.compareTo(otherUserId) < 0 ? currentUserId : otherUserId;
-      final participant2 = currentUserId.compareTo(otherUserId) < 0 ? otherUserId : currentUserId;
+      final participant1 =
+          currentUserId.compareTo(otherUserId) < 0
+              ? currentUserId
+              : otherUserId;
+      final participant2 =
+          currentUserId.compareTo(otherUserId) < 0
+              ? otherUserId
+              : currentUserId;
 
       // Check if conversation already exists
-      final existing = await _supabase
-          .from('private_conversations')
-          .select('id')
-          .eq('participant_1_id', participant1)
-          .eq('participant_2_id', participant2)
-          .maybeSingle();
+      final existing =
+          await _supabase
+              .from('private_conversations')
+              .select('id')
+              .eq('participant_1_id', participant1)
+              .eq('participant_2_id', participant2)
+              .maybeSingle();
 
       if (existing != null) {
         return existing['id'] as String;
       }
 
       // Create new conversation
-      final response = await _supabase
-          .from('private_conversations')
-          .insert({
-            'participant_1_id': participant1,
-            'participant_2_id': participant2,
-          })
-          .select('id')
-          .single();
+      final response =
+          await _supabase
+              .from('private_conversations')
+              .insert({
+                'participant_1_id': participant1,
+                'participant_2_id': participant2,
+              })
+              .select('id')
+              .single();
 
       return response['id'] as String;
     } catch (e) {
