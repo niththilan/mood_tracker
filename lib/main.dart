@@ -14,6 +14,9 @@ import 'mood_journal.dart';
 import 'profile_page.dart';
 import 'services/user_profile_service.dart';
 
+// Global navigator key
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -36,6 +39,7 @@ class MoodTrackerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'MoodFlow - Daily Mood Tracker',
       theme: ThemeData(
         useMaterial3: true,
@@ -112,6 +116,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
         setState(() {
           _session = data.session;
         });
+
+        // Handle sign out event explicitly
+        if (data.event == AuthChangeEvent.signedOut) {
+          print('User signed out, clearing session...');
+          setState(() {
+            _session = null;
+          });
+          return;
+        }
 
         // Only ensure user profile exists for existing logins, not new signups
         if (data.session?.user != null &&
@@ -483,13 +496,28 @@ class _MoodHomePageState extends State<MoodHomePage>
 
   Future<void> _signOut() async {
     try {
+      // Immediately sign out and navigate
       await supabase.auth.signOut();
-      // Navigation will be handled automatically by AuthWrapper
+
+      // Use the global navigator to immediately navigate to auth page
+      // This ensures immediate UI update
+      if (navigatorKey.currentState != null) {
+        navigatorKey.currentState!.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => AuthPage()),
+          (route) => false,
+        );
+      } else {
+        // Fallback: restart the entire app if navigator is not available
+        runApp(MoodTrackerApp());
+      }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error signing out: $error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error signing out: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
