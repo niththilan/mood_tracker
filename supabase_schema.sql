@@ -29,9 +29,10 @@ CREATE TABLE user_profiles (
 
 -- 2. Mood Entries Table
 -- Stores individual mood entries with notes
+-- NOTE: user_id will be automatically populated by RLS/triggers, not required in INSERT
 CREATE TABLE mood_entries (
     id SERIAL PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     mood VARCHAR(50) NOT NULL,
     note TEXT DEFAULT '',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -39,9 +40,10 @@ CREATE TABLE mood_entries (
 
 -- 3. Mood Goals Table
 -- Stores user-defined mood goals and tracks progress
+-- NOTE: user_id will be automatically populated by RLS/triggers, not required in INSERT
 CREATE TABLE mood_goals (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     title VARCHAR(200) NOT NULL,
     description TEXT DEFAULT '',
     target_days INTEGER NOT NULL,
@@ -54,9 +56,10 @@ CREATE TABLE mood_goals (
 
 -- 4. Chat Messages Table
 -- Stores chat messages for community features
+-- NOTE: user_id will be automatically populated by RLS/triggers, not required in INSERT
 CREATE TABLE chat_messages (
     id SERIAL PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     message TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -228,6 +231,57 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function to automatically set user_id for mood entries
+CREATE OR REPLACE FUNCTION set_user_id_mood_entries()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.user_id IS NULL THEN
+        NEW.user_id = auth.uid();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to automatically set user_id for mood goals
+CREATE OR REPLACE FUNCTION set_user_id_mood_goals()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.user_id IS NULL THEN
+        NEW.user_id = auth.uid();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to automatically set user_id for chat messages
+CREATE OR REPLACE FUNCTION set_user_id_chat_messages()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.user_id IS NULL THEN
+        NEW.user_id = auth.uid();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically set user_id for mood entries
+CREATE TRIGGER set_user_id_mood_entries_trigger
+    BEFORE INSERT ON mood_entries
+    FOR EACH ROW
+    EXECUTE FUNCTION set_user_id_mood_entries();
+
+-- Trigger to automatically set user_id for mood goals
+CREATE TRIGGER set_user_id_mood_goals_trigger
+    BEFORE INSERT ON mood_goals
+    FOR EACH ROW
+    EXECUTE FUNCTION set_user_id_mood_goals();
+
+-- Trigger to automatically set user_id for chat messages
+CREATE TRIGGER set_user_id_chat_messages_trigger
+    BEFORE INSERT ON chat_messages
+    FOR EACH ROW
+    EXECUTE FUNCTION set_user_id_chat_messages();
+
 -- Trigger to update goal progress when mood entry is inserted
 CREATE TRIGGER update_mood_goal_progress
     AFTER INSERT ON mood_entries
@@ -326,6 +380,51 @@ INSERT INTO mood_entries (user_id, mood, note, created_at) VALUES
 ('00000000-0000-0000-0000-000000000001', '😊 Happy', 'Had a great day at work!', NOW() - INTERVAL '1 day'),
 ('00000000-0000-0000-0000-000000000001', '😄 Excited', 'Looking forward to the weekend', NOW() - INTERVAL '2 days'),
 ('00000000-0000-0000-0000-000000000001', '😌 Calm', 'Peaceful evening with family', NOW() - INTERVAL '3 days');
+*/
+
+-- =====================================================
+-- CRITICAL FIXES FOR FLUTTER APP COMPATIBILITY
+-- =====================================================
+
+/*
+IMPORTANT: Your Flutter app has some inconsistencies that need to be addressed:
+
+1. MOOD ENTRIES INSERT ISSUE:
+   Your app sends: { 'mood': '😊 Happy', 'note': 'text', 'created_at': 'timestamp' }
+   But doesn't include user_id. The triggers above automatically add auth.uid().
+
+2. CHAT MESSAGES INSERT ISSUE:
+   Your app sends: { 'user_id': user.id, 'message': 'text', 'created_at': 'timestamp' }
+   This is correctly handled.
+
+3. GOALS INSERT ISSUE:
+   Your app sends: { 'title': 'title', 'description': 'desc', 'target_days': 7, 'target_mood': 'Happy' }
+   But doesn't include user_id. The triggers above automatically add auth.uid().
+
+4. USER PROFILES:
+   The schema correctly handles all user profile operations.
+
+ALTERNATIVE SOLUTION (if triggers don't work):
+If you prefer to modify your Flutter code instead of using triggers, change these:
+
+In main.dart (addMoodEntry function), add:
+final user = supabase.auth.currentUser;
+final newEntry = {
+  'user_id': user?.id,  // Add this line
+  'mood': '$selectedMoodEmoji $selectedMood',
+  'note': noteController.text,
+  'created_at': DateTime.now().toIso8601String(),
+};
+
+In goals_page.dart (_createGoal function), add:
+final user = supabase.auth.currentUser;
+await supabase.from('mood_goals').insert({
+  'user_id': user?.id,  // Add this line
+  'title': title,
+  'description': description,
+  'target_days': targetDays,
+  'target_mood': targetMood,
+});
 */
 
 -- =====================================================
