@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'analytics_page.dart';
+import 'enhanced_analytics_page.dart';
 import 'goals_page.dart';
 import 'auth_page.dart';
-import 'feature_showcase.dart';
+import 'onboarding_screen.dart';
+import 'wellness_center.dart';
+import 'quick_mood_entry.dart';
+import 'mood_journal.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +38,7 @@ class MoodTrackerApp extends StatelessWidget {
       title: 'MoodFlow - Daily Mood Tracker',
       theme: ThemeData(
         useMaterial3: true,
+        fontFamily: GoogleFonts.poppins().fontFamily,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF6750A4),
           brightness: Brightness.light,
@@ -53,6 +61,7 @@ class MoodTrackerApp extends StatelessWidget {
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
+        fontFamily: GoogleFonts.poppins().fontFamily,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF6750A4),
           brightness: Brightness.dark,
@@ -79,6 +88,7 @@ class AuthWrapper extends StatefulWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _isInitialized = false;
+  bool _onboardingCompleted = false;
   Session? _session;
 
   @override
@@ -88,6 +98,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _initializeAuth() async {
+    // Check onboarding status
+    final prefs = await SharedPreferences.getInstance();
+    _onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+
     // Get initial session
     _session = Supabase.instance.client.auth.currentSession;
 
@@ -120,6 +134,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
           ),
         ),
       );
+    }
+
+    // Show onboarding if not completed
+    if (!_onboardingCompleted) {
+      return OnboardingScreen();
     }
 
     if (_session != null) {
@@ -174,7 +193,6 @@ class _MoodHomePageState extends State<MoodHomePage>
   List<MoodEntry> moodHistory = [];
   bool isLoading = false;
   late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
   final supabase = Supabase.instance.client;
 
   // Enhanced mood options with better emojis and descriptions
@@ -207,9 +225,6 @@ class _MoodHomePageState extends State<MoodHomePage>
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _loadMoodHistory();
     _animationController.forward();
@@ -409,6 +424,117 @@ class _MoodHomePageState extends State<MoodHomePage>
     );
   }
 
+  Widget _buildQuickStats() {
+    final recentEntries = moodHistory.take(7).toList(); // Last 7 entries
+    final moodCounts = <String, int>{};
+
+    for (var entry in recentEntries) {
+      String mood = entry.mood.split(' ').skip(1).join(' '); // Remove emoji
+      moodCounts[mood] = (moodCounts[mood] ?? 0) + 1;
+    }
+
+    String mostFrequentMood = 'None';
+    if (moodCounts.isNotEmpty) {
+      mostFrequentMood =
+          moodCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    }
+
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.insights,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Quick Insights',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    'Total Entries',
+                    '${moodHistory.length}',
+                    Icons.event_note,
+                    Colors.blue,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatCard(
+                    'This Week',
+                    '${recentEntries.length}',
+                    Icons.calendar_today,
+                    Colors.green,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatCard(
+                    'Most Common',
+                    mostFrequentMood,
+                    Icons.trending_up,
+                    Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -436,19 +562,129 @@ class _MoodHomePageState extends State<MoodHomePage>
             ),
             actions: [
               IconButton(
-                icon: Icon(Icons.analytics_outlined),
-                tooltip: 'Analytics',
+                icon: Icon(Icons.book_outlined),
+                tooltip: 'Mood Journal',
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => AnalyticsPage()),
+                    PageRouteBuilder(
+                      pageBuilder:
+                          (context, animation, secondaryAnimation) =>
+                              MoodJournal(),
+                      transitionsBuilder: (
+                        context,
+                        animation,
+                        secondaryAnimation,
+                        child,
+                      ) {
+                        return SlideTransition(
+                          position: Tween<Offset>(
+                            begin: Offset(1.0, 0.0),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        );
+                      },
+                    ),
                   );
                 },
               ),
               IconButton(
-                icon: Icon(Icons.logout),
-                tooltip: 'Sign Out',
-                onPressed: isLoading ? null : _signOut,
+                icon: Icon(Icons.self_improvement),
+                tooltip: 'Wellness Center',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder:
+                          (context, animation, secondaryAnimation) =>
+                              WellnessCenter(),
+                      transitionsBuilder: (
+                        context,
+                        animation,
+                        secondaryAnimation,
+                        child,
+                      ) {
+                        return SlideTransition(
+                          position: Tween<Offset>(
+                            begin: Offset(1.0, 0.0),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+              PopupMenuButton<String>(
+                icon: Icon(Icons.more_vert),
+                onSelected: (value) {
+                  switch (value) {
+                    case 'analytics':
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AnalyticsPage(),
+                        ),
+                      );
+                      break;
+                    case 'enhanced_analytics':
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder:
+                              (context, animation, secondaryAnimation) =>
+                                  EnhancedAnalyticsPage(),
+                          transitionsBuilder: (
+                            context,
+                            animation,
+                            secondaryAnimation,
+                            child,
+                          ) {
+                            return SlideTransition(
+                              position: Tween<Offset>(
+                                begin: Offset(1.0, 0.0),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            );
+                          },
+                        ),
+                      );
+                      break;
+                    case 'logout':
+                      _signOut();
+                      break;
+                  }
+                },
+                itemBuilder:
+                    (context) => [
+                      PopupMenuItem(
+                        value: 'analytics',
+                        child: ListTile(
+                          leading: Icon(Icons.bar_chart),
+                          title: Text('Basic Analytics'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'enhanced_analytics',
+                        child: ListTile(
+                          leading: Icon(Icons.analytics),
+                          title: Text('Enhanced Analytics'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'logout',
+                        child: ListTile(
+                          leading: Icon(Icons.logout),
+                          title: Text('Sign Out'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ],
               ),
             ],
             floating: true,
@@ -659,6 +895,11 @@ class _MoodHomePageState extends State<MoodHomePage>
 
                 SizedBox(height: 24),
 
+                // Quick Stats Section
+                if (moodHistory.isNotEmpty) _buildQuickStats(),
+
+                SizedBox(height: 24),
+
                 // Mood History Section
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -745,106 +986,167 @@ class _MoodHomePageState extends State<MoodHomePage>
                     ),
                   )
                 else
-                  ...moodHistory
-                      .map(
-                        (entry) => Card(
-                          margin: EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            contentPadding: EdgeInsets.all(16),
-                            leading: CircleAvatar(
-                              backgroundColor:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer,
-                              child: Text(
-                                entry.mood.split(' ')[0], // Get emoji part
-                                style: TextStyle(fontSize: 24),
-                              ),
+                  AnimationLimiter(
+                    child: Column(
+                      children: AnimationConfiguration.toStaggeredList(
+                        duration: Duration(milliseconds: 600),
+                        childAnimationBuilder:
+                            (widget) => SlideAnimation(
+                              horizontalOffset: 50.0,
+                              child: FadeInAnimation(child: widget),
                             ),
-                            title: Text(
-                              entry.mood,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (entry.note.isNotEmpty) ...[
-                                  SizedBox(height: 4),
-                                  Text(entry.note),
-                                  SizedBox(height: 4),
-                                ],
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.schedule,
-                                      size: 16,
-                                      color:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      _formatDateTime(entry.timestamp),
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall?.copyWith(
-                                        color:
+                        children:
+                            moodHistory
+                                .map(
+                                  (entry) => Card(
+                                    margin: EdgeInsets.only(bottom: 8),
+                                    child: ListTile(
+                                      contentPadding: EdgeInsets.all(16),
+                                      leading: CircleAvatar(
+                                        backgroundColor:
                                             Theme.of(
                                               context,
-                                            ).colorScheme.onSurfaceVariant,
+                                            ).colorScheme.primaryContainer,
+                                        child: Text(
+                                          entry.mood.split(
+                                            ' ',
+                                          )[0], // Get emoji part
+                                          style: TextStyle(fontSize: 24),
+                                        ),
+                                      ),
+                                      title: Text(
+                                        entry.mood,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      subtitle: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          if (entry.note.isNotEmpty) ...[
+                                            SizedBox(height: 4),
+                                            Text(entry.note),
+                                            SizedBox(height: 4),
+                                          ],
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.schedule,
+                                                size: 16,
+                                                color:
+                                                    Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                              ),
+                                              SizedBox(width: 4),
+                                              Text(
+                                                _formatDateTime(
+                                                  entry.timestamp,
+                                                ),
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.bodySmall?.copyWith(
+                                                  color:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      trailing: IconButton(
+                                        icon: Icon(Icons.delete_outline),
+                                        color:
+                                            Theme.of(context).colorScheme.error,
+                                        onPressed:
+                                            () => _showDeleteConfirmation(
+                                              entry.id!,
+                                            ),
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            trailing: IconButton(
-                              icon: Icon(Icons.delete_outline),
-                              color: Theme.of(context).colorScheme.error,
-                              onPressed:
-                                  () => _showDeleteConfirmation(entry.id!),
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
+                                  ),
+                                )
+                                .toList(),
+                      ),
+                    ),
+                  ),
               ]),
             ),
           ),
         ],
       ),
-      // Modern floating action button for quick access
+      // Enhanced floating action buttons
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            heroTag: "showcase",
-            onPressed: () {
-              HapticFeedback.mediumImpact();
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => FeatureShowcasePage()),
-              );
-            },
-            child: Icon(Icons.star),
-            tooltip: 'Features',
-          ),
-          SizedBox(height: 16),
-          FloatingActionButton.extended(
-            heroTag: "goals",
-            onPressed: () {
-              HapticFeedback.mediumImpact();
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => GoalsPage()),
-              );
-            },
-            icon: Icon(Icons.flag_outlined),
-            label: Text('Goals'),
-          ),
-        ],
+        children: AnimationConfiguration.toStaggeredList(
+          duration: Duration(milliseconds: 600),
+          childAnimationBuilder:
+              (widget) => SlideAnimation(
+                horizontalOffset: 50.0,
+                child: FadeInAnimation(child: widget),
+              ),
+          children: [
+            // Quick mood entry button
+            FloatingActionButton(
+              heroTag: "quick_mood",
+              onPressed: () async {
+                HapticFeedback.mediumImpact();
+                final result = await Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder:
+                        (context, animation, secondaryAnimation) =>
+                            QuickMoodEntry(),
+                    transitionsBuilder: (
+                      context,
+                      animation,
+                      secondaryAnimation,
+                      child,
+                    ) {
+                      return SlideTransition(
+                        position: Tween<Offset>(
+                          begin: Offset(0.0, 1.0),
+                          end: Offset.zero,
+                        ).animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeInOut,
+                          ),
+                        ),
+                        child: child,
+                      );
+                    },
+                    transitionDuration: Duration(milliseconds: 300),
+                  ),
+                );
+                if (result == true) {
+                  await _loadMoodHistory(); // Refresh the mood history
+                }
+              },
+              child: Icon(Icons.add_reaction),
+              tooltip: 'Quick Mood Entry',
+              backgroundColor: Theme.of(context).colorScheme.primary,
+            ),
+            SizedBox(height: 16),
+            FloatingActionButton.extended(
+              heroTag: "goals",
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => GoalsPage()),
+                );
+              },
+              icon: Icon(Icons.flag_outlined),
+              label: Text('Goals'),
+            ),
+          ],
+        ),
       ),
     );
   }
