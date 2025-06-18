@@ -35,9 +35,15 @@ class UserProfileService {
       try {
         // Validate required fields
         if (userId.isEmpty || name.trim().isEmpty) {
-          print('Error: userId or name is empty');
+          print(
+            'Error: userId or name is empty - userId: "$userId", name: "$name"',
+          );
           return false;
         }
+
+        print(
+          'Attempting to create profile for userId: $userId with name: "${name.trim()}"',
+        );
 
         // Check if profile already exists
         final existingProfile = await getUserProfile(userId);

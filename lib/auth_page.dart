@@ -216,9 +216,6 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
       );
 
       if (response.user != null && mounted) {
-        // Check if user profile exists, create one if it doesn't
-        await UserProfileService.ensureUserProfile(response.user!.id);
-
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => MoodHomePage()),
         );
@@ -304,18 +301,70 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
       final response = await supabase.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        data: {
+          'name': _nameController.text.trim(),
+          'age':
+              _ageController.text.trim().isNotEmpty
+                  ? int.tryParse(_ageController.text.trim())
+                  : null,
+          'gender': _selectedGender,
+        },
       );
 
       if (response.user != null && mounted) {
-        // Create user profile
-        final profileCreated = await UserProfileService.createUserProfile(
-          userId: response.user!.id,
-          name: _nameController.text.trim(),
-          age: int.tryParse(_ageController.text.trim()),
-          gender: _selectedGender,
-        );
+        print('Signup successful for user: ${response.user!.id}');
+        print('User metadata: ${response.user!.userMetadata}');
 
-        if (profileCreated) {
+        // Wait a moment for the database trigger to create the profile
+        await Future.delayed(Duration(milliseconds: 1000));
+
+        // Check if profile was created by trigger and update if needed
+        final existingProfile = await UserProfileService.getUserProfile(
+          response.user!.id,
+        );
+        print('Profile created by trigger: $existingProfile');
+
+        bool profileUpdated = false;
+        if (existingProfile != null) {
+          // Update the profile with additional details if they weren't in metadata
+          profileUpdated = await UserProfileService.updateUserProfile(
+            userId: response.user!.id,
+            name: _nameController.text.trim(),
+            age: int.tryParse(_ageController.text.trim()),
+            gender: _selectedGender,
+          );
+          print('Profile updated: $profileUpdated');
+        } else {
+          // Fallback: create profile if trigger didn't work
+          profileUpdated = await UserProfileService.createUserProfile(
+            userId: response.user!.id,
+            name: _nameController.text.trim(),
+            age: int.tryParse(_ageController.text.trim()),
+            gender: _selectedGender,
+          );
+          print('Profile created as fallback: $profileUpdated');
+        }
+
+        // Verify the final profile
+        if (profileUpdated) {
+          final verifyProfile = await UserProfileService.getUserProfile(
+            response.user!.id,
+          );
+          print('Final profile verification: $verifyProfile');
+
+          if (verifyProfile != null &&
+              verifyProfile['name'] == _nameController.text.trim()) {
+            print(
+              'Profile setup successful with correct name: ${verifyProfile['name']}',
+            );
+          } else {
+            print(
+              'Warning: Profile name mismatch! Expected: ${_nameController.text.trim()}, Got: ${verifyProfile?['name']}',
+            );
+          }
+        }
+
+        if (profileUpdated) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(

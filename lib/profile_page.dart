@@ -86,26 +86,39 @@ class _ProfilePageState extends State<ProfilePage>
         _isLoading = false;
       });
     } else {
-      print('No profile found, creating default profile...');
-      // Try to create a default profile if none exists
-      final success = await UserProfileService.ensureUserProfile(userId);
-      if (success) {
-        // Retry loading the profile
-        final newProfile = await UserProfileService.getUserProfile(userId);
-        if (newProfile != null) {
-          setState(() {
-            _nameController.text = newProfile['name'] ?? '';
-            _ageController.text = newProfile['age']?.toString() ?? '';
-            _selectedGender = newProfile['gender'];
-            _selectedAvatar = newProfile['avatar_emoji'] ?? '😊';
-            _selectedColor = newProfile['color'] ?? '#4CAF50';
-            _isLoading = false;
-          });
-        } else {
-          setState(() => _isLoading = false);
-        }
-      } else {
-        setState(() => _isLoading = false);
+      print(
+        'No profile found - this should not happen for properly registered users',
+      );
+      // Show an error message and allow user to manually create their profile
+      setState(() {
+        _nameController.text = '';
+        _ageController.text = '';
+        _selectedGender = null;
+        _selectedAvatar = '😊';
+        _selectedColor = '#4CAF50';
+        _isLoading = false;
+      });
+
+      // Show a message to the user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.info, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Please set up your profile information below.'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.blue,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
       }
     }
 

@@ -413,12 +413,18 @@ BEGIN
     random_color := colors[1 + floor(random() * array_length(colors, 1))::int];
     
     -- Insert user profile
-    INSERT INTO public.user_profiles (id, name, avatar_emoji, color)
+    INSERT INTO public.user_profiles (id, name, avatar_emoji, color, age, gender)
     VALUES (
         NEW.id,
         COALESCE(NEW.raw_user_meta_data->>'name', 'User'),
         random_avatar,
-        random_color
+        random_color,
+        CASE 
+            WHEN NEW.raw_user_meta_data->>'age' IS NOT NULL 
+            THEN (NEW.raw_user_meta_data->>'age')::INTEGER 
+            ELSE NULL 
+        END,
+        NEW.raw_user_meta_data->>'gender'
     );
     
     -- Insert default user settings

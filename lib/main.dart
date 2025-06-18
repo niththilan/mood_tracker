@@ -113,18 +113,45 @@ class _AuthWrapperState extends State<AuthWrapper> {
           _session = data.session;
         });
 
-        // Ensure user profile exists when user logs in
-        if (data.session?.user != null) {
-          print('User authenticated, ensuring profile exists...');
-          await UserProfileService.ensureUserProfile(data.session!.user.id);
+        // Only ensure user profile exists for existing logins, not new signups
+        if (data.session?.user != null &&
+            data.event == AuthChangeEvent.signedIn) {
+          print(
+            'User signed in (event: ${data.event}), checking if profile exists...',
+          );
+          // Add a small delay to allow signup profile creation to complete
+          await Future.delayed(Duration(milliseconds: 500));
+
+          // Only create default profile if no profile exists and it's not a new signup
+          final existingProfile = await UserProfileService.getUserProfile(
+            data.session!.user.id,
+          );
+          if (existingProfile == null) {
+            print(
+              'No profile found for existing user, creating default profile...',
+            );
+            await UserProfileService.ensureUserProfile(data.session!.user.id);
+          } else {
+            print(
+              'Profile already exists with name: ${existingProfile['name']}',
+            );
+          }
         }
       }
     });
 
     // If there's an existing session, ensure profile exists
     if (_session?.user != null) {
-      print('Existing session found, ensuring profile exists...');
-      await UserProfileService.ensureUserProfile(_session!.user.id);
+      print('Existing session found, checking if profile exists...');
+      final existingProfile = await UserProfileService.getUserProfile(
+        _session!.user.id,
+      );
+      if (existingProfile == null) {
+        print(
+          'No profile found for existing session, creating default profile...',
+        );
+        await UserProfileService.ensureUserProfile(_session!.user.id);
+      }
     }
 
     setState(() {
@@ -267,12 +294,6 @@ class _MoodHomePageState extends State<MoodHomePage>
   }
 
   Future<void> _initializeApp() async {
-    // Ensure user profile exists
-    final userId = supabase.auth.currentUser?.id;
-    if (userId != null) {
-      await UserProfileService.ensureUserProfile(userId);
-    }
-
     // Load mood history and start animations
     _loadMoodHistory();
 
