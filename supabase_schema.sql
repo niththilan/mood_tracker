@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
     age INTEGER CHECK (age >= 13 AND age <= 120),
     gender TEXT CHECK (gender IN ('male', 'female', 'non-binary', 'prefer-not-to-say')),
     timezone TEXT DEFAULT 'UTC',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 -- =============================================================================
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS public.mood_categories (
     color_hex TEXT NOT NULL,
     mood_score INTEGER NOT NULL CHECK (mood_score >= 1 AND mood_score <= 10),
     description TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 -- Insert standard mood categories
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS public.mood_tags (
     category TEXT NOT NULL CHECK (category IN ('personal', 'social', 'work', 'health', 'environment', 'activity')),
     icon TEXT,
     color_hex TEXT DEFAULT '#666666',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 -- Insert standard mood tags
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS public.mood_goals (
     target_intensity_max INTEGER CHECK (target_intensity_max >= 1 AND target_intensity_max <= 10) DEFAULT 10,
     current_progress INTEGER DEFAULT 0 CHECK (current_progress >= 0),
     is_completed BOOLEAN DEFAULT false,
-    start_date DATE DEFAULT CURRENT_DATE,
+    start_date DATE DEFAULT (CURRENT_TIMESTAMP::date),
     target_end_date DATE,
     completed_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS public.goal_progress (
     id BIGSERIAL PRIMARY KEY,
     goal_id UUID REFERENCES public.mood_goals(id) ON DELETE CASCADE NOT NULL,
     mood_entry_id BIGINT REFERENCES public.mood_entries(id) ON DELETE CASCADE NOT NULL,
-    progress_date DATE DEFAULT CURRENT_DATE NOT NULL,
+    progress_date DATE DEFAULT (CURRENT_TIMESTAMP::date) NOT NULL,
     contributes_to_goal BOOLEAN DEFAULT true,
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
@@ -197,8 +197,8 @@ CREATE TABLE IF NOT EXISTS public.user_streaks (
     streak_type TEXT NOT NULL CHECK (streak_type IN ('daily_mood', 'weekly_goal', 'monthly_consistency')),
     current_count INTEGER DEFAULT 0 CHECK (current_count >= 0),
     best_count INTEGER DEFAULT 0 CHECK (best_count >= 0),
-    last_activity_date DATE DEFAULT CURRENT_DATE,
-    streak_start_date DATE DEFAULT CURRENT_DATE,
+    last_activity_date DATE DEFAULT (CURRENT_TIMESTAMP::date),
+    streak_start_date DATE DEFAULT (CURRENT_TIMESTAMP::date),
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
@@ -357,7 +357,6 @@ CREATE INDEX IF NOT EXISTS mood_entries_user_id_idx ON public.mood_entries(user_
 CREATE INDEX IF NOT EXISTS mood_entries_created_at_idx ON public.mood_entries(created_at DESC);
 CREATE INDEX IF NOT EXISTS mood_entries_category_idx ON public.mood_entries(mood_category_id);
 CREATE INDEX IF NOT EXISTS mood_entries_intensity_idx ON public.mood_entries(intensity);
-CREATE INDEX IF NOT EXISTS mood_entries_date_idx ON public.mood_entries(DATE(created_at));
 
 CREATE INDEX IF NOT EXISTS mood_entry_tags_entry_idx ON public.mood_entry_tags(mood_entry_id);
 CREATE INDEX IF NOT EXISTS mood_entry_tags_tag_idx ON public.mood_entry_tags(mood_tag_id);
@@ -386,7 +385,7 @@ CREATE INDEX IF NOT EXISTS mood_insights_active_idx ON public.mood_insights(is_a
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW();
+    NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -461,13 +460,13 @@ BEGIN
     -- Update goal progress for matching active goals
     FOR goal_record IN matching_goals LOOP
         INSERT INTO public.goal_progress (goal_id, mood_entry_id, progress_date, contributes_to_goal)
-        VALUES (goal_record.id, NEW.id, DATE(NEW.created_at), true)
+        VALUES (goal_record.id, NEW.id, NEW.created_at::date, true)
         ON CONFLICT (goal_id, mood_entry_id) DO NOTHING;
         
         -- Update current progress count
         UPDATE public.mood_goals 
         SET current_progress = (
-            SELECT COUNT(DISTINCT DATE(me.created_at))
+            SELECT COUNT(DISTINCT me.created_at::date)
             FROM public.mood_entries me
             JOIN public.goal_progress gp ON gp.mood_entry_id = me.id
             WHERE gp.goal_id = goal_record.id
@@ -477,7 +476,7 @@ BEGIN
         
         -- Check if goal is completed
         UPDATE public.mood_goals 
-        SET is_completed = true, completed_at = NOW()
+        SET is_completed = true, completed_at = CURRENT_TIMESTAMP
         WHERE id = goal_record.id 
         AND current_progress >= target_days
         AND is_completed = false;
@@ -498,8 +497,8 @@ CREATE TRIGGER mood_entry_goal_progress
 CREATE OR REPLACE FUNCTION public.update_user_streaks()
 RETURNS TRIGGER AS $$
 DECLARE
-    yesterday DATE := CURRENT_DATE - 1;
-    today DATE := CURRENT_DATE;
+    yesterday DATE := (CURRENT_TIMESTAMP::date - 1);
+    today DATE := CURRENT_TIMESTAMP::date;
     had_entry_yesterday BOOLEAN;
     streak_record RECORD;
 BEGIN
@@ -507,7 +506,7 @@ BEGIN
     SELECT EXISTS(
         SELECT 1 FROM public.mood_entries 
         WHERE user_id = NEW.user_id 
-        AND DATE(created_at) = yesterday
+        AND created_at::date = yesterday
     ) INTO had_entry_yesterday;
     
     -- Get current streak record
@@ -525,7 +524,7 @@ BEGIN
             best_count = GREATEST(best_count, current_count + 1),
             last_activity_date = today,
             is_active = true,
-            updated_at = NOW()
+            updated_at = CURRENT_TIMESTAMP
         WHERE user_id = NEW.user_id AND streak_type = 'daily_mood';
     ELSE
         -- Reset streak
@@ -534,7 +533,7 @@ BEGIN
             last_activity_date = today,
             streak_start_date = today,
             is_active = true,
-            updated_at = NOW()
+            updated_at = CURRENT_TIMESTAMP
         WHERE user_id = NEW.user_id AND streak_type = 'daily_mood';
     END IF;
     
@@ -563,7 +562,7 @@ BEGIN
     
     RETURN COALESCE(streak_count, 0);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 -- Get comprehensive mood statistics with relationships
 CREATE OR REPLACE FUNCTION public.get_mood_stats(user_uuid UUID, days_back INTEGER DEFAULT 30)
@@ -584,7 +583,7 @@ BEGIN
         LEFT JOIN public.mood_entry_tags met ON me.id = met.mood_entry_id
         LEFT JOIN public.mood_tags mt ON met.mood_tag_id = mt.id
         WHERE me.user_id = user_uuid
-        AND me.created_at >= NOW() - (days_back || ' days')::INTERVAL
+        AND me.created_at >= CURRENT_TIMESTAMP - (days_back || ' days')::INTERVAL
         GROUP BY me.id, me.intensity, mc.name, mc.mood_score, me.created_at
     )
     SELECT json_build_object(
@@ -593,31 +592,14 @@ BEGIN
         'average_mood_score', ROUND(AVG(mood_score), 1),
         'most_common_mood', mode() WITHIN GROUP (ORDER BY mood_name),
         'unique_moods', COUNT(DISTINCT mood_name),
-        'entries_this_week', COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days'),
-        'current_streak', public.get_mood_streak(user_uuid),
-        'mood_distribution', json_object_agg(mood_name, mood_count),
-        'common_tags', common_tags_array
+        'entries_this_week', COUNT(*) FILTER (WHERE created_at >= CURRENT_TIMESTAMP - INTERVAL '7 days'),
+        'current_streak', public.get_mood_streak(user_uuid)
     ) INTO result
-    FROM mood_data,
-    LATERAL (
-        SELECT json_object_agg(mood_name, COUNT(*)) as mood_count
-        FROM mood_data
-        GROUP BY mood_name
-    ) mood_counts,
-    LATERAL (
-        SELECT array_agg(tag_name ORDER BY tag_count DESC) as common_tags_array
-        FROM (
-            SELECT unnest(tags) as tag_name, COUNT(*) as tag_count
-            FROM mood_data
-            WHERE tags IS NOT NULL
-            GROUP BY unnest(tags)
-            LIMIT 5
-        ) top_tags
-    ) top_tags_query;
+    FROM mood_data;
     
     RETURN result;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 -- =============================================================================
 -- INTERCONNECTED VIEWS
@@ -637,7 +619,7 @@ SELECT
     me.location,
     me.weather,
     me.created_at,
-    DATE(me.created_at) as mood_date,
+    me.created_at::date as mood_date,
     EXTRACT(DOW FROM me.created_at)::int as day_of_week,
     EXTRACT(HOUR FROM me.created_at)::int as hour_of_day,
     array_agg(DISTINCT mt.name) FILTER (WHERE mt.name IS NOT NULL) as tags,
