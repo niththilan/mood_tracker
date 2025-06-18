@@ -146,20 +146,60 @@ CREATE TABLE IF NOT EXISTS public.goal_progress (
 );
 
 -- =============================================================================
--- 8. CHAT MESSAGES TABLE (Connected to user profiles)
+-- 8. PRIVATE CONVERSATIONS TABLE
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS public.chat_messages (
-    id BIGSERIAL PRIMARY KEY,
-    user_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
-    message TEXT NOT NULL CHECK (length(message) >= 1 AND length(message) <= 1000),
-    reply_to_message_id BIGINT REFERENCES public.chat_messages(id) ON DELETE SET NULL,
-    is_edited BOOLEAN DEFAULT false,
+CREATE TABLE IF NOT EXISTS public.private_conversations (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    participant_1_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
+    participant_2_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    UNIQUE(participant_1_id, participant_2_id),
+    CHECK (participant_1_id != participant_2_id)
 );
 
 -- =============================================================================
--- 9. MESSAGE REACTIONS TABLE (Connected to messages and users)
+-- 9. CHAT MESSAGES TABLE (Updated to support both public and private messages)
+-- =============================================================================
+-- First drop the existing table if we need to modify its structure
+-- Note: This will be handled differently in production - using migrations
+CREATE TABLE IF NOT EXISTS public.chat_messages_new (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
+    message TEXT NOT NULL CHECK (length(message) >= 1 AND length(message) <= 1000),
+    reply_to_message_id BIGINT,
+    conversation_id UUID REFERENCES public.private_conversations(id) ON DELETE CASCADE,
+    is_edited BOOLEAN DEFAULT false,
+    is_private BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    -- Check that private messages have a conversation_id
+    CHECK ((is_private = true AND conversation_id IS NOT NULL) OR (is_private = false AND conversation_id IS NULL))
+);
+
+-- Copy existing data if the old table exists
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'chat_messages') THEN
+        INSERT INTO public.chat_messages_new (id, user_id, message, reply_to_message_id, is_edited, is_private, created_at, updated_at)
+        SELECT id, user_id, message, reply_to_message_id, is_edited, false, created_at, updated_at
+        FROM public.chat_messages;
+        
+        -- Drop old table and rename new one
+        DROP TABLE public.chat_messages CASCADE;
+    END IF;
+END $$;
+
+-- Rename the new table
+ALTER TABLE public.chat_messages_new RENAME TO chat_messages;
+
+-- Re-add the self-reference constraint for reply_to_message_id
+ALTER TABLE public.chat_messages 
+ADD CONSTRAINT chat_messages_reply_to_message_id_fkey 
+FOREIGN KEY (reply_to_message_id) REFERENCES public.chat_messages(id) ON DELETE SET NULL;
+
+-- =============================================================================
+-- 10. MESSAGE REACTIONS TABLE (Connected to messages and users)
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS public.message_reactions (
     id BIGSERIAL PRIMARY KEY,
@@ -171,7 +211,7 @@ CREATE TABLE IF NOT EXISTS public.message_reactions (
 );
 
 -- =============================================================================
--- 10. USER SETTINGS TABLE (Connected to user profiles)
+-- 11. USER SETTINGS TABLE (Connected to user profiles)
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS public.user_settings (
     id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE PRIMARY KEY,
@@ -189,7 +229,7 @@ CREATE TABLE IF NOT EXISTS public.user_settings (
 );
 
 -- =============================================================================
--- 11. USER STREAKS TABLE (Track mood logging streaks)
+-- 12. USER STREAKS TABLE (Track mood logging streaks)
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS public.user_streaks (
     id BIGSERIAL PRIMARY KEY,
@@ -206,7 +246,7 @@ CREATE TABLE IF NOT EXISTS public.user_streaks (
 );
 
 -- =============================================================================
--- 12. MOOD INSIGHTS TABLE (Store calculated insights and patterns)
+-- 13. MOOD INSIGHTS TABLE (Store calculated insights and patterns)
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS public.mood_insights (
     id BIGSERIAL PRIMARY KEY,
@@ -231,6 +271,7 @@ ALTER TABLE public.mood_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mood_entry_tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mood_goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.goal_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.private_conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.message_reactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
@@ -308,11 +349,34 @@ CREATE POLICY "Users can insert their own goal progress" ON public.goal_progress
         WHERE mg.id = goal_id AND mg.user_id = auth.uid()
     ));
 
--- Chat Messages Policies
-CREATE POLICY "Anyone can view chat messages" ON public.chat_messages
-    FOR SELECT USING (true);
-CREATE POLICY "Authenticated users can insert chat messages" ON public.chat_messages
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- Private Conversations Policies
+CREATE POLICY "Users can view their own conversations" ON public.private_conversations
+    FOR SELECT USING (auth.uid() = participant_1_id OR auth.uid() = participant_2_id);
+CREATE POLICY "Authenticated users can create conversations" ON public.private_conversations
+    FOR INSERT WITH CHECK (auth.uid() = participant_1_id OR auth.uid() = participant_2_id);
+
+-- Chat Messages Policies (Updated for private/public messages)
+CREATE POLICY "Anyone can view public messages" ON public.chat_messages
+    FOR SELECT USING (is_private = false);
+CREATE POLICY "Users can view private messages in their conversations" ON public.chat_messages
+    FOR SELECT USING (
+        is_private = true AND 
+        conversation_id IN (
+            SELECT id FROM public.private_conversations 
+            WHERE participant_1_id = auth.uid() OR participant_2_id = auth.uid()
+        )
+    );
+CREATE POLICY "Authenticated users can insert public messages" ON public.chat_messages
+    FOR INSERT WITH CHECK (auth.uid() = user_id AND is_private = false);
+CREATE POLICY "Users can insert private messages in their conversations" ON public.chat_messages
+    FOR INSERT WITH CHECK (
+        auth.uid() = user_id AND 
+        is_private = true AND
+        conversation_id IN (
+            SELECT id FROM public.private_conversations 
+            WHERE participant_1_id = auth.uid() OR participant_2_id = auth.uid()
+        )
+    );
 CREATE POLICY "Users can update their own chat messages" ON public.chat_messages
     FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own chat messages" ON public.chat_messages
@@ -368,8 +432,14 @@ CREATE INDEX IF NOT EXISTS mood_goals_active_idx ON public.mood_goals(is_complet
 CREATE INDEX IF NOT EXISTS goal_progress_goal_idx ON public.goal_progress(goal_id);
 CREATE INDEX IF NOT EXISTS goal_progress_date_idx ON public.goal_progress(progress_date);
 
+CREATE INDEX IF NOT EXISTS private_conversations_participant_1_idx ON public.private_conversations(participant_1_id);
+CREATE INDEX IF NOT EXISTS private_conversations_participant_2_idx ON public.private_conversations(participant_2_id);
+CREATE INDEX IF NOT EXISTS private_conversations_participants_idx ON public.private_conversations(participant_1_id, participant_2_id);
+
 CREATE INDEX IF NOT EXISTS chat_messages_user_id_idx ON public.chat_messages(user_id);
 CREATE INDEX IF NOT EXISTS chat_messages_created_at_idx ON public.chat_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS chat_messages_conversation_id_idx ON public.chat_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS chat_messages_private_idx ON public.chat_messages(is_private, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS user_streaks_user_id_idx ON public.user_streaks(user_id);
 CREATE INDEX IF NOT EXISTS user_streaks_type_idx ON public.user_streaks(streak_type);
@@ -394,6 +464,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER user_profiles_updated_at BEFORE UPDATE ON public.user_profiles FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER mood_entries_updated_at BEFORE UPDATE ON public.mood_entries FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER mood_goals_updated_at BEFORE UPDATE ON public.mood_goals FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER private_conversations_updated_at BEFORE UPDATE ON public.private_conversations FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER chat_messages_updated_at BEFORE UPDATE ON public.chat_messages FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER user_settings_updated_at BEFORE UPDATE ON public.user_settings FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER user_streaks_updated_at BEFORE UPDATE ON public.user_streaks FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
@@ -665,6 +736,7 @@ JOIN public.mood_categories mc ON mg.target_mood_category_id = mc.id;
 -- =============================================================================
 -- REAL-TIME SETUP
 -- =============================================================================
+ALTER PUBLICATION supabase_realtime ADD TABLE public.private_conversations;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.message_reactions;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.user_profiles;
