@@ -20,7 +20,7 @@ void main() {
     expect(find.text('Select Mood'), findsOneWidget);
     expect(find.text('Log Mood'), findsOneWidget);
     expect(find.text('Mood History'), findsOneWidget);
-    
+
     // Verify that mood history is initially empty
     expect(find.byType(ListView), findsOneWidget);
   });

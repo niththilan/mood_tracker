@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'dart:math' as math;
 import 'main.dart';
+import 'services/user_profile_service.dart';
 
 class AuthPage extends StatefulWidget {
   @override
@@ -13,6 +14,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _nameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _isLogin = true;
@@ -20,6 +22,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
   bool _obscureConfirmPassword = true;
   bool _emailValid = false;
   bool _passwordValid = false;
+  bool _nameValid = false;
   late AnimationController _animationController;
   late AnimationController _modeController;
   late AnimationController _pulseController;
@@ -91,6 +94,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     // Add listeners for real-time validation
     _emailController.addListener(_validateEmailRealTime);
     _passwordController.addListener(_validatePasswordRealTime);
+    _nameController.addListener(_validateNameRealTime);
   }
 
   void _validateEmailRealTime() {
@@ -111,6 +115,13 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     }
   }
 
+  void _validateNameRealTime() {
+    final isValid = _nameController.text.trim().length >= 2;
+    if (isValid != _nameValid) {
+      setState(() => _nameValid = isValid);
+    }
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -120,6 +131,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -143,6 +155,19 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     return null;
   }
 
+  String? _validateName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Name is required';
+    }
+    if (value.trim().length < 2) {
+      return 'Name must be at least 2 characters';
+    }
+    if (value.trim().length > 50) {
+      return 'Name must be less than 50 characters';
+    }
+    return null;
+  }
+
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -154,6 +179,9 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
       );
 
       if (response.user != null && mounted) {
+        // Check if user profile exists, create one if it doesn't
+        await UserProfileService.ensureUserProfile(response.user!.id);
+
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => MoodHomePage()),
         );
@@ -242,6 +270,12 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
       );
 
       if (response.user != null && mounted) {
+        // Create user profile
+        await UserProfileService.createUserProfile(
+          userId: response.user!.id,
+          name: _nameController.text.trim(),
+        );
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -731,6 +765,86 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         ),
 
         const SizedBox(height: 20),
+
+        // Name Field (only for sign up)
+        if (!_isLogin) ...[
+          AnimatedSlide(
+            duration: const Duration(milliseconds: 300),
+            offset: _isLogin ? const Offset(0, -1) : Offset.zero,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              opacity: _isLogin ? 0.0 : 1.0,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow:
+                      _nameValid
+                          ? [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                          : null,
+                ),
+                child: TextFormField(
+                  controller: _nameController,
+                  validator: _validateName,
+                  enabled: !_isLoading,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    labelText: 'Full Name',
+                    hintText: 'Enter your full name',
+                    prefixIcon: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.person_outline,
+                        color:
+                            _nameValid
+                                ? Colors.green
+                                : Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    suffixIcon:
+                        _nameValid
+                            ? const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                            )
+                            : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color:
+                            _nameValid
+                                ? Colors.green
+                                : Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
 
         // Password Field with strength indicator
         AnimatedContainer(

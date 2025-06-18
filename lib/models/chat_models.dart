@@ -61,4 +61,13 @@ class UserProfile {
       colorHex: json['color'],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'avatar_emoji': avatarEmoji,
+      'color': colorHex,
+    };
+  }
 }

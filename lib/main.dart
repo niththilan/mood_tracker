@@ -11,6 +11,7 @@ import 'onboarding_screen.dart';
 import 'chat_page.dart';
 import 'quick_mood_entry.dart';
 import 'mood_journal.dart';
+import 'profile_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1077,6 +1078,30 @@ class _MoodHomePageState extends State<MoodHomePage>
                 icon: Icon(Icons.more_vert),
                 onSelected: (value) {
                   switch (value) {
+                    case 'profile':
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder:
+                              (context, animation, secondaryAnimation) =>
+                                  ProfilePage(),
+                          transitionsBuilder: (
+                            context,
+                            animation,
+                            secondaryAnimation,
+                            child,
+                          ) {
+                            return SlideTransition(
+                              position: Tween<Offset>(
+                                begin: Offset(1.0, 0.0),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            );
+                          },
+                        ),
+                      );
+                      break;
                     case 'analytics':
                       Navigator.push(
                         context,
@@ -1116,6 +1141,14 @@ class _MoodHomePageState extends State<MoodHomePage>
                 },
                 itemBuilder:
                     (context) => [
+                      PopupMenuItem(
+                        value: 'profile',
+                        child: ListTile(
+                          leading: Icon(Icons.person),
+                          title: Text('Profile'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
                       PopupMenuItem(
                         value: 'analytics',
                         child: ListTile(
