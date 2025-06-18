@@ -8,7 +8,7 @@ import 'enhanced_analytics_page.dart';
 import 'goals_page.dart';
 import 'auth_page.dart';
 import 'onboarding_screen.dart';
-import 'wellness_center.dart';
+import 'chat_page.dart';
 import 'quick_mood_entry.dart';
 import 'mood_journal.dart';
 
@@ -1046,15 +1046,15 @@ class _MoodHomePageState extends State<MoodHomePage>
                 },
               ),
               IconButton(
-                icon: Icon(Icons.self_improvement),
-                tooltip: 'Wellness Center',
+                icon: Icon(Icons.chat_bubble_outline),
+                tooltip: 'Community Chat',
                 onPressed: () {
                   Navigator.push(
                     context,
                     PageRouteBuilder(
                       pageBuilder:
                           (context, animation, secondaryAnimation) =>
-                              WellnessCenter(),
+                              ChatPage(),
                       transitionsBuilder: (
                         context,
                         animation,
