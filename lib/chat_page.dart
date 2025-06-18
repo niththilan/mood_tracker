@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:intl/intl.dart';
@@ -15,12 +16,22 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   final ChatService _chatService = ChatService();
   late AnimationController _typingController;
+  late AnimationController _fabController;
+  late AnimationController _messageAnimationController;
 
   List<ChatMessage> messages = [];
-  List<UserProfile> activeUsers = [];
   bool isLoading = true;
   bool isSending = false;
+  bool _showScrollToBottom = false;
   String? currentUserId;
+  final List<String> _quickReplies = [
+    '👋 Hello!',
+    '💙 Feeling good today',
+    '🌟 Thanks for sharing',
+    '💪 You got this!',
+    '🫂 Sending hugs',
+    '☀️ Hope things get better',
+  ];
 
   @override
   void initState() {
@@ -30,6 +41,29 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
       vsync: this,
     )..repeat(reverse: true);
 
+    _fabController = AnimationController(
+      duration: Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _messageAnimationController = AnimationController(
+      duration: Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    // Add scroll listener to show/hide scroll-to-bottom button
+    _scrollController.addListener(() {
+      final showButton = _scrollController.offset > 200;
+      if (_showScrollToBottom != showButton) {
+        setState(() => _showScrollToBottom = showButton);
+        if (showButton) {
+          _fabController.forward();
+        } else {
+          _fabController.reverse();
+        }
+      }
+    });
+
     _initializeChat();
   }
 
@@ -38,6 +72,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     _messageController.dispose();
     _scrollController.dispose();
     _typingController.dispose();
+    _fabController.dispose();
+    _messageAnimationController.dispose();
     super.dispose();
   }
 
@@ -47,8 +83,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     // Get current user ID
     currentUserId = _chatService.supabase.auth.currentUser?.id;
 
-    // Load initial data
-    await Future.wait([_loadMessages(), _loadActiveUsers()]);
+    // Load messages
+    await _loadMessages();
 
     setState(() => isLoading = false);
     _scrollToBottom();
@@ -86,18 +122,6 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     } catch (e) {
       print('Error loading messages: $e');
       _showErrorSnackBar('Failed to load messages');
-    }
-  }
-
-  Future<void> _loadActiveUsers() async {
-    try {
-      final usersData = await _chatService.getActiveUsers();
-      setState(() {
-        activeUsers =
-            usersData.map((data) => UserProfile.fromJson(data)).toList();
-      });
-    } catch (e) {
-      print('Error loading users: $e');
     }
   }
 
@@ -170,162 +194,82 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Community Chat',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-        ),
+        elevation: 0,
         backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: Theme.of(context).colorScheme.onSurface,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Community Chat',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            Text(
+              '${messages.length} messages',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          IconButton(icon: Icon(Icons.refresh), onPressed: _initializeChat),
           IconButton(
-            icon: Icon(Icons.info_outline),
-            onPressed: () => _showChatInfo(),
+            icon: Icon(Icons.refresh_rounded),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              _initializeChat();
+            },
+            tooltip: 'Refresh messages',
+          ),
+          IconButton(
+            icon: Icon(Icons.info_outline_rounded),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              _showChatInfo();
+            },
+            tooltip: 'Chat guidelines',
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          if (activeUsers.isNotEmpty) _buildOnlineUsers(),
-          Expanded(
-            child:
-                isLoading
-                    ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text('Loading chat...'),
-                        ],
-                      ),
-                    )
-                    : messages.isEmpty
-                    ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.chat_bubble_outline,
-                            size: 64,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'No messages yet',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Be the first to start a conversation!',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                    : ListView.builder(
-                      controller: _scrollController,
-                      padding: EdgeInsets.all(16),
-                      itemCount: messages.length,
-                      itemBuilder: (context, index) {
-                        return AnimationConfiguration.staggeredList(
-                          position: index,
-                          duration: Duration(milliseconds: 300),
-                          child: SlideAnimation(
-                            verticalOffset: 20.0,
-                            child: FadeInAnimation(
-                              child: _buildMessageBubble(messages[index]),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+          Column(
+            children: [
+              if (messages.isNotEmpty) _buildQuickRepliesBar(),
+              Expanded(
+                child:
+                    isLoading
+                        ? _buildLoadingState()
+                        : messages.isEmpty
+                        ? _buildEmptyState()
+                        : _buildMessagesList(),
+              ),
+              _buildMessageInput(),
+            ],
           ),
-          _buildMessageInput(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOnlineUsers() {
-    if (activeUsers.isEmpty) return SizedBox.shrink();
-
-    return Container(
-      height: 80,
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Online Now',
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+          // Scroll to bottom FAB
+          if (_showScrollToBottom)
+            Positioned(
+              bottom: 100,
+              right: 16,
+              child: ScaleTransition(
+                scale: _fabController,
+                child: FloatingActionButton.small(
+                  heroTag: "scrollToBottom",
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    _scrollToBottom();
+                  },
+                  child: Icon(Icons.keyboard_arrow_down_rounded),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                ),
+              ),
             ),
-          ),
-          SizedBox(height: 8),
-          Expanded(
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: activeUsers.length,
-              itemBuilder: (context, index) {
-                final user = activeUsers[index];
-                final isCurrentUser = user.id == currentUserId;
-
-                return Container(
-                  margin: EdgeInsets.only(right: 12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: _hexToColor(
-                              user.colorHex,
-                            ).withOpacity(0.2),
-                            child: Text(
-                              user.avatarEmoji,
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          ),
-                          if (!isCurrentUser)
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: Colors.green,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      SizedBox(height: 4),
-                      Flexible(
-                        child: Text(
-                          isCurrentUser ? 'You' : user.name,
-                          style: TextStyle(fontSize: 10),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
         ],
       ),
     );
@@ -341,132 +285,236 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     final userColor =
         userProfile != null ? _hexToColor(userProfile.colorHex) : Colors.grey;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment:
-            isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!isCurrentUser) ...[
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: userColor.withOpacity(0.2),
-              child: Text(avatarEmoji, style: TextStyle(fontSize: 12)),
-            ),
-            SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Column(
-              crossAxisAlignment:
-                  isCurrentUser
-                      ? CrossAxisAlignment.end
-                      : CrossAxisAlignment.start,
-              children: [
-                if (!isCurrentUser)
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      displayName,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: userColor,
-                      ),
+    return GestureDetector(
+      onTap: () => HapticFeedback.selectionClick(),
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment:
+              isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!isCurrentUser) ...[
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  _showUserProfile(userProfile);
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: userColor.withOpacity(0.3),
+                      width: 2,
                     ),
                   ),
-                GestureDetector(
-                  onLongPress: () => _showReactionMenu(message.id),
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: userColor.withOpacity(0.2),
+                    child: Text(avatarEmoji, style: TextStyle(fontSize: 14)),
+                  ),
+                ),
+              ),
+              SizedBox(width: 12),
+            ],
+            Flexible(
+              child: Column(
+                crossAxisAlignment:
+                    isCurrentUser
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
+                children: [
+                  if (!isCurrentUser)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 6, left: 4),
+                      child: Text(
+                        displayName,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: userColor,
+                        ),
+                      ),
                     ),
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color:
-                          isCurrentUser
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.surfaceVariant,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      message.message,
-                      style: TextStyle(
+                  GestureDetector(
+                    onLongPress: () {
+                      HapticFeedback.heavyImpact();
+                      _showMessageOptions(message);
+                    },
+                    onDoubleTap: () {
+                      HapticFeedback.lightImpact();
+                      _addReaction(message.id, '❤️');
+                    },
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.75,
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
                         color:
                             isCurrentUser
-                                ? Theme.of(context).colorScheme.onPrimary
-                                : Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.surfaceVariant,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                          bottomLeft: Radius.circular(isCurrentUser ? 20 : 6),
+                          bottomRight: Radius.circular(isCurrentUser ? 6 : 20),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        message.message,
+                        style: GoogleFonts.poppins(
+                          color:
+                              isCurrentUser
+                                  ? Theme.of(context).colorScheme.onPrimary
+                                  : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                          fontSize: 15,
+                          height: 1.3,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                if (message.reactions.isNotEmpty)
-                  Container(
-                    margin: EdgeInsets.only(top: 4),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
-                    ),
-                    child: Wrap(
-                      spacing: 4,
-                      children:
-                          message.reactions.entries.map((entry) {
-                            final hasUserReacted =
-                                currentUserId != null &&
-                                entry.value.contains(currentUserId!);
+                  if (message.reactions.isNotEmpty)
+                    Container(
+                      margin: EdgeInsets.only(top: 6),
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.75,
+                      ),
+                      child: Wrap(
+                        alignment:
+                            isCurrentUser
+                                ? WrapAlignment.end
+                                : WrapAlignment.start,
+                        spacing: 6,
+                        children:
+                            message.reactions.entries.map((entry) {
+                              final hasUserReacted =
+                                  currentUserId != null &&
+                                  entry.value.contains(currentUserId!);
 
-                            return GestureDetector(
-                              onTap: () => _addReaction(message.id, entry.key),
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
+                              return GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  _addReaction(message.id, entry.key);
+                                },
+                                child: AnimatedContainer(
+                                  duration: Duration(milliseconds: 200),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        hasUserReacted
+                                            ? Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withOpacity(0.2)
+                                            : Theme.of(
+                                              context,
+                                            ).colorScheme.surfaceVariant,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border:
+                                        hasUserReacted
+                                            ? Border.all(
+                                              color:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                              width: 1,
+                                            )
+                                            : null,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        entry.key,
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        '${entry.value.length}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color:
+                                              hasUserReacted
+                                                  ? Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary
+                                                  : Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                decoration: BoxDecoration(
-                                  color:
-                                      hasUserReacted
-                                          ? Theme.of(
-                                            context,
-                                          ).colorScheme.primary.withOpacity(0.2)
-                                          : Theme.of(
-                                            context,
-                                          ).colorScheme.surfaceVariant,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '${entry.key} ${entry.value.length}',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              ),
-                            );
-                          }).toList(),
+                              );
+                            }).toList(),
+                      ),
+                    ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 6, left: 4, right: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 12,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          DateFormat('HH:mm').format(message.timestamp),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                Padding(
-                  padding: EdgeInsets.only(top: 4),
-                  child: Text(
-                    DateFormat('HH:mm').format(message.timestamp),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant.withOpacity(0.6),
-                    ),
+                ],
+              ),
+            ),
+            if (isCurrentUser) ...[
+              SizedBox(width: 12),
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: userColor.withOpacity(0.3),
+                    width: 2,
                   ),
                 ),
-              ],
-            ),
-          ),
-          if (isCurrentUser) ...[
-            SizedBox(width: 8),
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: userColor.withOpacity(0.2),
-              child: Text(avatarEmoji, style: TextStyle(fontSize: 12)),
-            ),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: userColor.withOpacity(0.2),
+                  child: Text(avatarEmoji, style: TextStyle(fontSize: 14)),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -485,44 +533,131 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
         ],
       ),
       child: SafeArea(
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: TextField(
-                controller: _messageController,
-                enabled: !isSending,
-                decoration: InputDecoration(
-                  hintText: 'Share your thoughts...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.surfaceVariant,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withOpacity(0.3),
+                      ),
+                    ),
+                    child: TextField(
+                      controller: _messageController,
+                      enabled: !isSending,
+                      decoration: InputDecoration(
+                        hintText: 'Share your thoughts...',
+                        hintStyle: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                        ),
+                        border: InputBorder.none,
+                        filled: true,
+                        fillColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceVariant.withOpacity(0.5),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          size: 20,
+                        ),
+                      ),
+                      maxLines: 4,
+                      minLines: 1,
+                      onSubmitted: (_) => _sendMessage(),
+                      onChanged: (text) {
+                        // Add typing indicator logic here if needed
+                      },
+                    ),
                   ),
                 ),
-                maxLines: 4,
-                minLines: 1,
-                onSubmitted: (_) => _sendMessage(),
-              ),
+                SizedBox(width: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                      ],
+                    ),
+                  ),
+                  child: FloatingActionButton.small(
+                    onPressed:
+                        isSending
+                            ? null
+                            : () {
+                              HapticFeedback.lightImpact();
+                              _sendMessage();
+                            },
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    child:
+                        isSending
+                            ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(width: 8),
-            FloatingActionButton.small(
-              onPressed: isSending ? null : _sendMessage,
-              child:
-                  isSending
-                      ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                      : Icon(Icons.send),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    _showEmojiPicker();
+                  },
+                  icon: Icon(
+                    Icons.emoji_emotions_outlined,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  tooltip: 'Add emoji',
+                ),
+                IconButton(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    _showQuickReactions();
+                  },
+                  icon: Icon(
+                    Icons.add_reaction_outlined,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  tooltip: 'Quick reactions',
+                ),
+                Spacer(),
+                Text(
+                  '${_messageController.text.length}/500',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -530,42 +665,312 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     );
   }
 
-  void _showReactionMenu(String messageId) {
+  void _showUserProfile(userProfile) {
+    if (userProfile == null) return;
+
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.transparent,
       builder: (context) {
+        final userColor = _hexToColor(userProfile.colorHex);
         return Container(
-          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              SizedBox(height: 20),
+              CircleAvatar(
+                radius: 40,
+                backgroundColor: userColor.withOpacity(0.2),
+                child: Text(
+                  userProfile.avatarEmoji,
+                  style: TextStyle(fontSize: 32),
+                ),
+              ),
+              SizedBox(height: 16),
               Text(
-                'React to message',
+                userProfile.name,
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 8),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: userColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: userColor.withOpacity(0.3)),
+                ),
+                child: Text(
+                  'Community Member',
+                  style: TextStyle(
+                    color: userColor,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMessageOptions(ChatMessage message) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Message Options',
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 16),
+              SizedBox(height: 20),
               Wrap(
-                spacing: 16,
+                spacing: 12,
+                runSpacing: 12,
                 children:
                     ['❤️', '😊', '👍', '😢', '😮', '😡', '🎉', '🙏'].map((
                       emoji,
                     ) {
                       return GestureDetector(
                         onTap: () {
-                          _addReaction(messageId, emoji);
+                          HapticFeedback.lightImpact();
+                          _addReaction(message.id, emoji);
                           Navigator.pop(context);
                         },
                         child: Container(
                           padding: EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceVariant,
+                            color:
+                                Theme.of(context).colorScheme.primaryContainer,
                             shape: BoxShape.circle,
                           ),
                           child: Text(emoji, style: TextStyle(fontSize: 24)),
                         ),
+                      );
+                    }).toList(),
+              ),
+              SizedBox(height: 20),
+              ListTile(
+                leading: Icon(Icons.copy_rounded),
+                title: Text('Copy message'),
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Clipboard.setData(ClipboardData(text: message.message));
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Message copied!')));
+                },
+              ),
+              SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEmojiPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: 250,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Add Emoji',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 16),
+              Expanded(
+                child: GridView.count(
+                  crossAxisCount: 8,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  children:
+                      [
+                        '😊',
+                        '😂',
+                        '❤️',
+                        '😍',
+                        '🥺',
+                        '😭',
+                        '😘',
+                        '😎',
+                        '🤗',
+                        '😇',
+                        '🥰',
+                        '😋',
+                        '🤔',
+                        '😴',
+                        '🙄',
+                        '😤',
+                        '🤯',
+                        '🥳',
+                        '😪',
+                        '🤢',
+                        '🤮',
+                        '🤧',
+                        '🤒',
+                        '🤕',
+                        '👍',
+                        '👎',
+                        '👏',
+                        '🙏',
+                        '💪',
+                        '👋',
+                        '✌️',
+                        '🤞',
+                      ].map((emoji) {
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            final currentText = _messageController.text;
+                            _messageController.text = currentText + emoji;
+                            _messageController
+                                .selection = TextSelection.fromPosition(
+                              TextPosition(
+                                offset: _messageController.text.length,
+                              ),
+                            );
+                            Navigator.pop(context);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(context).colorScheme.surfaceVariant,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                emoji,
+                                style: TextStyle(fontSize: 20),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showQuickReactions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Quick Reactions',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children:
+                    _quickReplies.map((reply) {
+                      return ActionChip(
+                        label: Text(reply),
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          _messageController.text = reply;
+                          Navigator.pop(context);
+                          _sendMessage();
+                        },
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primaryContainer,
                       );
                     }).toList(),
               ),
@@ -577,30 +982,243 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildQuickRepliesBar() {
+    return Container(
+      height: 50,
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _quickReplies.length,
+        itemBuilder: (context, index) {
+          final reply = _quickReplies[index];
+          return Container(
+            margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: ActionChip(
+              label: Text(reply, style: TextStyle(fontSize: 12)),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                _messageController.text = reply;
+                _sendMessage();
+              },
+              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+              side: BorderSide.none,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          SizedBox(height: 24),
+          Text(
+            'Loading chat...',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Connecting to the community',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 48,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          SizedBox(height: 24),
+          Text(
+            'Start the conversation!',
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Be the first to share your thoughts\nand connect with the community',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              _messageController.text = '👋 Hello everyone!';
+            },
+            icon: Icon(Icons.waving_hand),
+            label: Text('Say Hello'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessagesList() {
+    return ListView.builder(
+      controller: _scrollController,
+      padding: EdgeInsets.all(16),
+      itemCount: messages.length,
+      itemBuilder: (context, index) {
+        final message = messages[index];
+        final isLastMessage = index == messages.length - 1;
+
+        return AnimationConfiguration.staggeredList(
+          position: index,
+          duration: Duration(milliseconds: 300),
+          child: SlideAnimation(
+            verticalOffset: 20.0,
+            child: FadeInAnimation(
+              child: Container(
+                margin: EdgeInsets.only(bottom: isLastMessage ? 16 : 8),
+                child: _buildMessageBubble(message),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showChatInfo() {
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text('Community Guidelines'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Community Guidelines',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Welcome to our supportive community! 🌟'),
-                SizedBox(height: 12),
-                Text('Guidelines:'),
-                Text('• Be kind and respectful'),
-                Text('• Share your experiences openly'),
-                Text('• Support others in their journey'),
-                Text('• Keep conversations positive'),
-                Text('• Report any inappropriate behavior'),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Text('🌟', style: TextStyle(fontSize: 20)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Welcome to our supportive community!',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Guidelines:',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                SizedBox(height: 8),
+                ...[
+                  '• Be kind and respectful to everyone',
+                  '• Share your experiences openly and honestly',
+                  '• Support others in their wellness journey',
+                  '• Keep conversations positive and constructive',
+                  '• Report any inappropriate behavior',
+                  '• Remember: we\'re all here to help each other',
+                ].map(
+                  (guideline) => Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2),
+                    child: Text(guideline, style: TextStyle(height: 1.4)),
+                  ),
+                ),
+                SizedBox(height: 16),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Text('💡', style: TextStyle(fontSize: 16)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Long press on messages for quick reactions!\nDouble tap to add a heart ❤️',
+                          style: TextStyle(fontSize: 12, height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Got it!'),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  'Got it! 👍',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                ),
               ),
             ],
           ),
