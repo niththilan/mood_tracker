@@ -93,8 +93,8 @@ CREATE TABLE IF NOT EXISTS public.mood_entries (
     note TEXT DEFAULT '',
     location TEXT,
     weather TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 -- =============================================================================
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS public.mood_entry_tags (
     id BIGSERIAL PRIMARY KEY,
     mood_entry_id BIGINT REFERENCES public.mood_entries(id) ON DELETE CASCADE NOT NULL,
     mood_tag_id SMALLINT REFERENCES public.mood_tags(id) ON DELETE CASCADE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     UNIQUE(mood_entry_id, mood_tag_id)
 );
 
@@ -122,11 +122,11 @@ CREATE TABLE IF NOT EXISTS public.mood_goals (
     target_intensity_max INTEGER CHECK (target_intensity_max >= 1 AND target_intensity_max <= 10) DEFAULT 10,
     current_progress INTEGER DEFAULT 0 CHECK (current_progress >= 0),
     is_completed BOOLEAN DEFAULT false,
-    start_date DATE DEFAULT (CURRENT_TIMESTAMP::date),
+    start_date DATE,
     target_end_date DATE,
     completed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT valid_intensity_range CHECK (target_intensity_min <= target_intensity_max),
     CONSTRAINT valid_date_range CHECK (target_end_date >= start_date)
 );
@@ -138,10 +138,10 @@ CREATE TABLE IF NOT EXISTS public.goal_progress (
     id BIGSERIAL PRIMARY KEY,
     goal_id UUID REFERENCES public.mood_goals(id) ON DELETE CASCADE NOT NULL,
     mood_entry_id BIGINT REFERENCES public.mood_entries(id) ON DELETE CASCADE NOT NULL,
-    progress_date DATE DEFAULT (CURRENT_TIMESTAMP::date) NOT NULL,
+    progress_date DATE NOT NULL,
     contributes_to_goal BOOLEAN DEFAULT true,
     notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     UNIQUE(goal_id, mood_entry_id)
 );
 
@@ -154,8 +154,8 @@ CREATE TABLE IF NOT EXISTS public.chat_messages (
     message TEXT NOT NULL CHECK (length(message) >= 1 AND length(message) <= 1000),
     reply_to_message_id BIGINT REFERENCES public.chat_messages(id) ON DELETE SET NULL,
     is_edited BOOLEAN DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 -- =============================================================================
@@ -166,7 +166,7 @@ CREATE TABLE IF NOT EXISTS public.message_reactions (
     message_id BIGINT REFERENCES public.chat_messages(id) ON DELETE CASCADE NOT NULL,
     user_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
     emoji TEXT NOT NULL CHECK (length(emoji) >= 1 AND length(emoji) <= 10),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     UNIQUE(message_id, user_id, emoji)
 );
 
@@ -184,8 +184,8 @@ CREATE TABLE IF NOT EXISTS public.user_settings (
     privacy_level TEXT DEFAULT 'private' CHECK (privacy_level IN ('public', 'friends', 'private')),
     goal_notifications BOOLEAN DEFAULT true,
     streak_notifications BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 -- =============================================================================
@@ -197,8 +197,8 @@ CREATE TABLE IF NOT EXISTS public.user_streaks (
     streak_type TEXT NOT NULL CHECK (streak_type IN ('daily_mood', 'weekly_goal', 'monthly_consistency')),
     current_count INTEGER DEFAULT 0 CHECK (current_count >= 0),
     best_count INTEGER DEFAULT 0 CHECK (best_count >= 0),
-    last_activity_date DATE DEFAULT (CURRENT_TIMESTAMP::date),
-    streak_start_date DATE DEFAULT (CURRENT_TIMESTAMP::date),
+    last_activity_date DATE,
+    streak_start_date DATE,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
@@ -217,7 +217,7 @@ CREATE TABLE IF NOT EXISTS public.mood_insights (
     data_points JSONB,
     confidence_score DECIMAL(3,2) CHECK (confidence_score >= 0 AND confidence_score <= 1),
     is_active BOOLEAN DEFAULT true,
-    generated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    generated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     expires_at TIMESTAMP WITH TIME ZONE
 );
 
