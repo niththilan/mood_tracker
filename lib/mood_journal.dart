@@ -362,27 +362,30 @@ class _FilterHeaderDelegate extends SliverPersistentHeaderDelegate {
   ) {
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Search bar
           TextField(
             controller: searchController,
             decoration: InputDecoration(
               hintText: 'Search your moods and notes...',
-              prefixIcon: Icon(Icons.search),
+              prefixIcon: Icon(Icons.search, size: 20),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
               filled: true,
               fillColor: Theme.of(context).colorScheme.surfaceVariant,
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              isDense: true,
             ),
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 8),
           // Filter chips
           SizedBox(
-            height: 40,
+            height: 32,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: filterOptions.length,
@@ -393,12 +396,17 @@ class _FilterHeaderDelegate extends SliverPersistentHeaderDelegate {
                 return Padding(
                   padding: EdgeInsets.only(right: 8),
                   child: FilterChip(
-                    label: Text(filter),
+                    label: Text(
+                      filter,
+                      style: TextStyle(fontSize: 12),
+                    ),
                     selected: isSelected,
                     onSelected: (selected) => onFilterChanged(filter),
                     selectedColor:
                         Theme.of(context).colorScheme.primaryContainer,
                     checkmarkColor: Theme.of(context).colorScheme.primary,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
                   ),
                 );
               },
@@ -410,10 +418,10 @@ class _FilterHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 120;
+  double get maxExtent => 100;
 
   @override
-  double get minExtent => 120;
+  double get minExtent => 100;
 
   @override
   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
