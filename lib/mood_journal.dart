@@ -396,10 +396,7 @@ class _FilterHeaderDelegate extends SliverPersistentHeaderDelegate {
                 return Padding(
                   padding: EdgeInsets.only(right: 8),
                   child: FilterChip(
-                    label: Text(
-                      filter,
-                      style: TextStyle(fontSize: 12),
-                    ),
+                    label: Text(filter, style: TextStyle(fontSize: 12)),
                     selected: isSelected,
                     onSelected: (selected) => onFilterChanged(filter),
                     selectedColor:
