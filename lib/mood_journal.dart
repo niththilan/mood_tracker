@@ -55,7 +55,21 @@ class _MoodJournalState extends State<MoodJournal>
     try {
       final response = await supabase
           .from('mood_entries')
-          .select()
+          .select('''
+            id,
+            mood_category_id,
+            intensity,
+            note,
+            created_at,
+            mood_categories (
+              id,
+              name,
+              emoji,
+              color_hex,
+              mood_score,
+              description
+            )
+          ''')
           .order('created_at', ascending: false);
 
       setState(() {

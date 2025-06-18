@@ -141,11 +141,30 @@ class _QuickMoodEntryState extends State<QuickMoodEntry>
     HapticFeedback.heavyImpact();
 
     try {
+      // Find the mood category ID based on the selected mood name
+      int? moodCategoryId;
+      final moodCategories = {
+        'Happy': 1,
+        'Excited': 2,
+        'Calm': 3,
+        'Neutral': 4,
+        'Sad': 5,
+        'Angry': 6,
+        'Anxious': 7,
+        'Tired': 8,
+      };
+
+      moodCategoryId = moodCategories[selectedMood];
+
+      if (moodCategoryId == null) {
+        throw Exception('Invalid mood selected');
+      }
+
       final newEntry = {
-        'mood': '$selectedMoodEmoji $selectedMood',
-        'note': noteController.text,
+        'user_id': supabase.auth.currentUser?.id,
+        'mood_category_id': moodCategoryId,
         'intensity': intensity,
-        'tags': selectedTags.join(','),
+        'note': noteController.text,
         'created_at': DateTime.now().toIso8601String(),
       };
 
