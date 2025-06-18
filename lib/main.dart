@@ -194,28 +194,55 @@ class MoodEntry {
   final String mood;
   final String note;
   final DateTime timestamp;
+  final int? intensity;
 
   MoodEntry({
     this.id,
     required this.mood,
     required this.note,
     required this.timestamp,
+    this.intensity,
   });
 
   factory MoodEntry.fromJson(Map<String, dynamic> json) {
+    // Use the joined mood_categories data if available
+    String moodDisplay;
+    if (json['mood_categories'] != null) {
+      final category = json['mood_categories'];
+      moodDisplay = '${category['emoji']} ${category['name']}';
+    } else {
+      // Fallback to hardcoded mapping if join data not available
+      final moodCategories = {
+        1: {'name': 'Happy', 'emoji': '😊'},
+        2: {'name': 'Excited', 'emoji': '😄'},
+        3: {'name': 'Calm', 'emoji': '😌'},
+        4: {'name': 'Neutral', 'emoji': '😐'},
+        5: {'name': 'Sad', 'emoji': '😔'},
+        6: {'name': 'Angry', 'emoji': '😠'},
+        7: {'name': 'Anxious', 'emoji': '😨'},
+        8: {'name': 'Tired', 'emoji': '😴'},
+      };
+
+      final categoryId = json['mood_category_id'] as int?;
+      final category =
+          moodCategories[categoryId] ?? {'name': 'Unknown', 'emoji': '❓'};
+      moodDisplay = '${category['emoji']} ${category['name']}';
+    }
+
     return MoodEntry(
       id: json['id'],
-      mood: json['mood'],
+      mood: moodDisplay,
       note: json['note'] ?? '',
       timestamp: DateTime.parse(json['created_at']),
+      intensity: json['intensity'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'mood': mood,
       'note': note,
       'created_at': timestamp.toIso8601String(),
+      'intensity': intensity,
     };
   }
 }
@@ -319,7 +346,21 @@ class _MoodHomePageState extends State<MoodHomePage>
     try {
       final response = await supabase
           .from('mood_entries')
-          .select()
+          .select('''
+            id,
+            mood_category_id,
+            intensity,
+            note,
+            created_at,
+            mood_categories (
+              id,
+              name,
+              emoji,
+              color_hex,
+              mood_score,
+              description
+            )
+          ''')
           .order('created_at', ascending: false);
 
       if (mounted) {
@@ -348,9 +389,30 @@ class _MoodHomePageState extends State<MoodHomePage>
       setState(() => isLoading = true);
 
       try {
+        // Find the mood category ID based on the selected mood name
+        int? moodCategoryId;
+        final moodCategories = {
+          'Happy': 1,
+          'Excited': 2,
+          'Calm': 3,
+          'Neutral': 4,
+          'Sad': 5,
+          'Angry': 6,
+          'Anxious': 7,
+          'Tired': 8,
+        };
+
+        moodCategoryId = moodCategories[selectedMood];
+
+        if (moodCategoryId == null) {
+          throw Exception('Invalid mood selected');
+        }
+
         final newEntry = {
-          'mood': '$selectedMoodEmoji $selectedMood',
-          'note': noteController.text,
+          'user_id': supabase.auth.currentUser?.id,
+          'mood_category_id': moodCategoryId,
+          'intensity': 5, // Default intensity, can be made customizable later
+          'note': noteController.text.trim(),
           'created_at': DateTime.now().toIso8601String(),
         };
 
@@ -391,6 +453,7 @@ class _MoodHomePageState extends State<MoodHomePage>
           );
         }
       } catch (error) {
+        print('Error adding mood entry: $error');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
