@@ -684,61 +684,103 @@ class _MoodHomePageState extends State<MoodHomePage>
 
   Widget _buildMoodSelectionCard() {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.mood, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'Select Your Mood',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1,
+      elevation: 4,
+      shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.mood_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'How are you feeling?',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          'Select your current mood',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              itemCount: moods.length,
-              itemBuilder: (context, index) {
-                final mood = moods[index];
-                final isSelected = selectedMood == mood['name'];
+              const SizedBox(height: 20),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.85,
+                ),
+                itemCount: moods.length,
+                itemBuilder: (context, index) {
+                  final mood = moods[index];
+                  final isSelected = selectedMood == mood['name'];
 
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  transform: Matrix4.identity()..scale(isSelected ? 1.05 : 1.0),
-                  child: InkWell(
+                  return GestureDetector(
                     onTap:
                         isLoading
                             ? null
                             : () {
-                              HapticFeedback.mediumImpact();
+                              HapticFeedback.lightImpact();
                               setState(() {
                                 selectedMood = mood['name'];
                                 selectedMoodEmoji = mood['emoji'];
                               });
                             },
-                    borderRadius: BorderRadius.circular(16),
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      transform:
+                          Matrix4.identity()..scale(isSelected ? 1.05 : 1.0),
                       decoration: BoxDecoration(
                         color:
                             isSelected
                                 ? Theme.of(context).colorScheme.primaryContainer
-                                : Theme.of(context).colorScheme.surfaceVariant,
+                                : Theme.of(
+                                  context,
+                                ).colorScheme.surfaceVariant.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(16),
                         border:
                             isSelected
@@ -746,34 +788,48 @@ class _MoodHomePageState extends State<MoodHomePage>
                                   color: Theme.of(context).colorScheme.primary,
                                   width: 2,
                                 )
-                                : null,
+                                : Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outline.withOpacity(0.2),
+                                  width: 1,
+                                ),
                         boxShadow:
                             isSelected
                                 ? [
                                   BoxShadow(
                                     color: Theme.of(
                                       context,
-                                    ).colorScheme.primary.withOpacity(0.2),
+                                    ).colorScheme.primary.withOpacity(0.3),
                                     blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                                    offset: const Offset(0, 4),
                                   ),
                                 ]
-                                : null,
+                                : [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           AnimatedDefaultTextStyle(
                             duration: const Duration(milliseconds: 200),
-                            style: TextStyle(fontSize: isSelected ? 32 : 28),
+                            style: TextStyle(fontSize: isSelected ? 36 : 32),
                             child: Text(mood['emoji']!),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           Text(
                             mood['name']!,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelSmall?.copyWith(
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight:
+                                  isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
                               color:
                                   isSelected
                                       ? Theme.of(
@@ -782,97 +838,159 @@ class _MoodHomePageState extends State<MoodHomePage>
                                       : Theme.of(
                                         context,
                                       ).colorScheme.onSurfaceVariant,
-                              fontWeight:
-                                  isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
                             ),
                             textAlign: TextAlign.center,
                           ),
                         ],
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-            if (selectedMood != null) ...[
-              const SizedBox(height: 16),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeInOut,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      selectedMoodEmoji!,
-                      style: const TextStyle(fontSize: 24),
+                  );
+                },
+              ),
+              if (selectedMood != null) ...[
+                const SizedBox(height: 20),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeInOut,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withOpacity(0.8),
+                        Theme.of(
+                          context,
+                        ).colorScheme.secondaryContainer.withOpacity(0.8),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            selectedMood!,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            moods.firstWhere(
-                              (m) => m['name'] == selectedMood,
-                            )['description']!,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          selectedMoodEmoji!,
+                          style: const TextStyle(fontSize: 24),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'You selected: $selectedMood',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                            Text(
+                              moods.firstWhere(
+                                (m) => m['name'] == selectedMood,
+                              )['description']!,
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer
+                                    .withOpacity(0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withOpacity(0.3),
+                  ),
+                ),
+                child: TextField(
+                  controller: noteController,
+                  enabled: !isLoading,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Add a note (optional)',
+                    hintText: 'What\'s on your mind today?',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.all(16),
+                    prefixIcon: Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Icon(
+                        Icons.edit_note_rounded,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
-                  ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 200),
+                  child: FilledButton.icon(
+                    onPressed:
+                        (selectedMood != null && !isLoading)
+                            ? addMoodEntry
+                            : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon:
+                        isLoading
+                            ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : Icon(Icons.add_circle_outline_rounded),
+                    label: Text(
+                      isLoading ? 'Logging...' : 'Log Mood Entry',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
-            const SizedBox(height: 20),
-            TextField(
-              controller: noteController,
-              enabled: !isLoading,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: 'Add a note (optional)',
-                hintText: 'What\'s on your mind?',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.edit_note),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed:
-                    (selectedMood != null && !isLoading) ? addMoodEntry : null,
-                icon:
-                    isLoading
-                        ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                        : const Icon(Icons.add_circle_outline),
-                label: Text(isLoading ? 'Logging...' : 'Log Mood'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -1037,6 +1155,286 @@ class _MoodHomePageState extends State<MoodHomePage>
     );
   }
 
+  Widget _buildWelcomeSection() {
+    final hour = DateTime.now().hour;
+    String greeting;
+    IconData greetingIcon;
+
+    if (hour < 12) {
+      greeting = 'Good Morning! ☀️';
+      greetingIcon = Icons.wb_sunny_rounded;
+    } else if (hour < 17) {
+      greeting = 'Good Afternoon! 🌤️';
+      greetingIcon = Icons.wb_cloudy_rounded;
+    } else {
+      greeting = 'Good Evening! 🌙';
+      greetingIcon = Icons.nightlight_round;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Theme.of(context).colorScheme.primaryContainer,
+            Theme.of(context).colorScheme.secondaryContainer,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                greetingIcon,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                size: 28,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  greeting,
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Ready to track your mood and connect with your inner self?',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Theme.of(
+                context,
+              ).colorScheme.onPrimaryContainer.withOpacity(0.8),
+              height: 1.4,
+            ),
+          ),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.emoji_events_rounded,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        '${moodHistory.length} entries logged',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.favorite_rounded,
+                  size: 16,
+                  color: Colors.red,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildQuickActionCard(
+            'Quick Entry',
+            'Log mood fast',
+            Icons.add_reaction_rounded,
+            Theme.of(context).colorScheme.primary,
+            () async {
+              HapticFeedback.mediumImpact();
+              final result = await Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder:
+                      (context, animation, secondaryAnimation) =>
+                          QuickMoodEntry(),
+                  transitionsBuilder: (
+                    context,
+                    animation,
+                    secondaryAnimation,
+                    child,
+                  ) {
+                    return SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.0, 1.0),
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeInOut,
+                        ),
+                      ),
+                      child: child,
+                    );
+                  },
+                  transitionDuration: const Duration(milliseconds: 300),
+                ),
+              );
+              if (result == true) {
+                await _loadMoodHistory();
+              }
+            },
+          ),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: _buildQuickActionCard(
+            'Analytics',
+            'View insights',
+            Icons.analytics_rounded,
+            Theme.of(context).colorScheme.secondary,
+            () {
+              HapticFeedback.lightImpact();
+              Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder:
+                      (context, animation, secondaryAnimation) =>
+                          EnhancedAnalyticsPage(),
+                  transitionsBuilder: (
+                    context,
+                    animation,
+                    secondaryAnimation,
+                    child,
+                  ) {
+                    return SlideTransition(
+                      position: Tween<Offset>(
+                        begin: Offset(1.0, 0.0),
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeInOut,
+                        ),
+                      ),
+                      child: child,
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: _buildQuickActionCard(
+            'Goals',
+            'Set targets',
+            Icons.flag_rounded,
+            Theme.of(context).colorScheme.tertiary,
+            () {
+              HapticFeedback.lightImpact();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => GoalsPage()),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickActionCard(
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 200),
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.2), width: 1),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            SizedBox(height: 8),
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1044,190 +1442,271 @@ class _MoodHomePageState extends State<MoodHomePage>
       body: CustomScrollView(
         slivers: [
           SliverAppBar.large(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'MoodFlow',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                Text(
-                  'How are you feeling today?',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              IconButton(
-                icon: Icon(Icons.book_outlined),
-                tooltip: 'Mood Journal',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder:
-                          (context, animation, secondaryAnimation) =>
-                              MoodJournal(),
-                      transitionsBuilder: (
-                        context,
-                        animation,
-                        secondaryAnimation,
-                        child,
-                      ) {
-                        return SlideTransition(
-                          position: Tween<Offset>(
-                            begin: Offset(1.0, 0.0),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-              IconButton(
-                icon: Icon(Icons.chat_bubble_outline),
-                tooltip: 'Community Chat',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder:
-                          (context, animation, secondaryAnimation) =>
-                              ChatPage(),
-                      transitionsBuilder: (
-                        context,
-                        animation,
-                        secondaryAnimation,
-                        child,
-                      ) {
-                        return SlideTransition(
-                          position: Tween<Offset>(
-                            begin: Offset(1.0, 0.0),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-              PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert),
-                onSelected: (value) {
-                  switch (value) {
-                    case 'profile':
-                      Navigator.push(
-                        context,
-                        PageRouteBuilder(
-                          pageBuilder:
-                              (context, animation, secondaryAnimation) =>
-                                  ProfilePage(),
-                          transitionsBuilder: (
-                            context,
-                            animation,
-                            secondaryAnimation,
-                            child,
-                          ) {
-                            return SlideTransition(
-                              position: Tween<Offset>(
-                                begin: Offset(1.0, 0.0),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
-                            );
-                          },
-                        ),
-                      );
-                      break;
-                    case 'analytics':
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AnalyticsPage(),
-                        ),
-                      );
-                      break;
-                    case 'enhanced_analytics':
-                      Navigator.push(
-                        context,
-                        PageRouteBuilder(
-                          pageBuilder:
-                              (context, animation, secondaryAnimation) =>
-                                  EnhancedAnalyticsPage(),
-                          transitionsBuilder: (
-                            context,
-                            animation,
-                            secondaryAnimation,
-                            child,
-                          ) {
-                            return SlideTransition(
-                              position: Tween<Offset>(
-                                begin: Offset(1.0, 0.0),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
-                            );
-                          },
-                        ),
-                      );
-                      break;
-                    case 'logout':
-                      _signOut();
-                      break;
-                  }
-                },
-                itemBuilder:
-                    (context) => [
-                      PopupMenuItem(
-                        value: 'profile',
-                        child: ListTile(
-                          leading: Icon(Icons.person),
-                          title: Text('Profile'),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'analytics',
-                        child: ListTile(
-                          leading: Icon(Icons.bar_chart),
-                          title: Text('Basic Analytics'),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'enhanced_analytics',
-                        child: ListTile(
-                          leading: Icon(Icons.analytics),
-                          title: Text('Enhanced Analytics'),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'logout',
-                        child: ListTile(
-                          leading: Icon(Icons.logout),
-                          title: Text('Sign Out'),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ],
-              ),
-            ],
+            expandedHeight: 140,
             floating: true,
             snap: true,
+            pinned: false,
+            centerTitle: false,
+            flexibleSpace: FlexibleSpaceBar(
+              title:
+                  null, // Remove title from FlexibleSpaceBar to avoid overlap
+              titlePadding: EdgeInsets.zero,
+              background: Container(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  bottom: 24,
+                  top: 80,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'MoodFlow',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 28,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'How are you feeling today?',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              Container(
+                margin: EdgeInsets.only(right: 8, top: 8),
+                child: IconButton(
+                  icon: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.book_outlined,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  tooltip: 'Mood Journal',
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder:
+                            (context, animation, secondaryAnimation) =>
+                                MoodJournal(),
+                        transitionsBuilder: (
+                          context,
+                          animation,
+                          secondaryAnimation,
+                          child,
+                        ) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: Offset(1.0, 0.0),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInOut,
+                              ),
+                            ),
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Container(
+                margin: EdgeInsets.only(right: 8, top: 8),
+                child: IconButton(
+                  icon: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.chat_bubble_outline,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                  ),
+                  tooltip: 'Community Chat',
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder:
+                            (context, animation, secondaryAnimation) =>
+                                ChatPage(),
+                        transitionsBuilder: (
+                          context,
+                          animation,
+                          secondaryAnimation,
+                          child,
+                        ) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: Offset(1.0, 0.0),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInOut,
+                              ),
+                            ),
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Container(
+                margin: EdgeInsets.only(right: 16, top: 8),
+                child: PopupMenuButton<String>(
+                  icon: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.more_vert_rounded,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  onSelected: (value) {
+                    HapticFeedback.lightImpact();
+                    switch (value) {
+                      case 'profile':
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) =>
+                                    ProfilePage(),
+                            transitionsBuilder: (
+                              context,
+                              animation,
+                              secondaryAnimation,
+                              child,
+                            ) {
+                              return SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: Offset(1.0, 0.0),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
+                        break;
+                      case 'analytics':
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AnalyticsPage(),
+                          ),
+                        );
+                        break;
+                      case 'enhanced_analytics':
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) =>
+                                    EnhancedAnalyticsPage(),
+                            transitionsBuilder: (
+                              context,
+                              animation,
+                              secondaryAnimation,
+                              child,
+                            ) {
+                              return SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: Offset(1.0, 0.0),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
+                        break;
+                      case 'logout':
+                        _signOut();
+                        break;
+                    }
+                  },
+                  itemBuilder:
+                      (context) => [
+                        PopupMenuItem(
+                          value: 'profile',
+                          child: ListTile(
+                            leading: Icon(Icons.person),
+                            title: Text('Profile'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'analytics',
+                          child: ListTile(
+                            leading: Icon(Icons.bar_chart),
+                            title: Text('Basic Analytics'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'enhanced_analytics',
+                          child: ListTile(
+                            leading: Icon(Icons.analytics),
+                            title: Text('Enhanced Analytics'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'logout',
+                          child: ListTile(
+                            leading: Icon(Icons.logout),
+                            title: Text('Sign Out'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ],
+                ),
+              ),
+            ],
           ),
           SliverPadding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                // Welcome Section
+                _buildWelcomeSection(),
+                const SizedBox(height: 20),
+
+                // Quick Actions Row
+                _buildQuickActionsRow(),
+                const SizedBox(height: 24),
+
                 // Wrap main content with animations
                 FadeTransition(
                   opacity: _fadeAnimation,
@@ -1238,7 +1717,7 @@ class _MoodHomePageState extends State<MoodHomePage>
                         // Mood Selection Section
                         _buildMoodSelectionCard(),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
 
                         // Quick Stats Section
                         if (moodHistory.isNotEmpty)
@@ -1248,10 +1727,13 @@ class _MoodHomePageState extends State<MoodHomePage>
                             child: _buildQuickStats(),
                           ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
 
                         // Mood History Section
                         _buildMoodHistorySection(),
+
+                        // Add bottom padding for FAB
+                        const SizedBox(height: 120),
                       ],
                     ),
                   ),
@@ -1261,75 +1743,118 @@ class _MoodHomePageState extends State<MoodHomePage>
           ),
         ],
       ),
-      // Enhanced floating action buttons
-      floatingActionButton: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 2),
-          end: Offset.zero,
-        ).animate(
-          CurvedAnimation(
-            parent: _fabAnimationController,
-            curve: Curves.elasticOut,
+      // Enhanced floating action buttons with better positioning
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: 16, right: 8),
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 2),
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(
+              parent: _fabAnimationController,
+              curve: Curves.elasticOut,
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            // Quick mood entry button
-            FloatingActionButton(
-              heroTag: "quick_mood",
-              onPressed: () async {
-                HapticFeedback.mediumImpact();
-                final result = await Navigator.push(
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder:
-                        (context, animation, secondaryAnimation) =>
-                            QuickMoodEntry(),
-                    transitionsBuilder: (
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Quick mood entry button
+              Container(
+                margin: EdgeInsets.only(bottom: 16),
+                child: FloatingActionButton(
+                  heroTag: "quick_mood",
+                  onPressed: () async {
+                    HapticFeedback.mediumImpact();
+                    final result = await Navigator.push(
                       context,
-                      animation,
-                      secondaryAnimation,
-                      child,
-                    ) {
-                      return SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0.0, 1.0),
-                          end: Offset.zero,
-                        ).animate(
-                          CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeInOut,
-                          ),
-                        ),
-                        child: child,
-                      );
-                    },
-                    transitionDuration: const Duration(milliseconds: 300),
+                      PageRouteBuilder(
+                        pageBuilder:
+                            (context, animation, secondaryAnimation) =>
+                                QuickMoodEntry(),
+                        transitionsBuilder: (
+                          context,
+                          animation,
+                          secondaryAnimation,
+                          child,
+                        ) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.0, 1.0),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInOut,
+                              ),
+                            ),
+                            child: child,
+                          );
+                        },
+                        transitionDuration: const Duration(milliseconds: 300),
+                      ),
+                    );
+                    if (result == true) {
+                      await _loadMoodHistory();
+                    }
+                  },
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  elevation: 6,
+                  child: Container(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(Icons.add_reaction_rounded, size: 28),
                   ),
-                );
-                if (result == true) {
-                  await _loadMoodHistory(); // Refresh the mood history
-                }
-              },
-              child: const Icon(Icons.add_reaction),
-              tooltip: 'Quick Mood Entry',
-              backgroundColor: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            FloatingActionButton.extended(
-              heroTag: "goals",
-              onPressed: () {
-                HapticFeedback.mediumImpact();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => GoalsPage()),
-                );
-              },
-              icon: const Icon(Icons.flag_outlined),
-              label: const Text('Goals'),
-            ),
-          ],
+                  tooltip: 'Quick Mood Entry',
+                ),
+              ),
+              // Goals button
+              FloatingActionButton.extended(
+                heroTag: "goals",
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder:
+                          (context, animation, secondaryAnimation) =>
+                              GoalsPage(),
+                      transitionsBuilder: (
+                        context,
+                        animation,
+                        secondaryAnimation,
+                        child,
+                      ) {
+                        return SlideTransition(
+                          position: Tween<Offset>(
+                            begin: Offset(1.0, 0.0),
+                            end: Offset.zero,
+                          ).animate(
+                            CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeInOut,
+                            ),
+                          ),
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                },
+                backgroundColor:
+                    Theme.of(context).colorScheme.secondaryContainer,
+                foregroundColor:
+                    Theme.of(context).colorScheme.onSecondaryContainer,
+                elevation: 4,
+                icon: Icon(Icons.flag_rounded),
+                label: Text(
+                  'Goals',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
