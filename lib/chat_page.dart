@@ -268,6 +268,24 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     }
   }
 
+  void _showSuccessSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(child: Text(message)),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   void _openPrivateMessages() {
     Navigator.of(
       context,
@@ -873,6 +891,25 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                   ).showSnackBar(SnackBar(content: Text('Message copied!')));
                 },
               ),
+              // Show delete option only for user's own messages
+              if (message.userId == currentUserId) ...[
+                ListTile(
+                  leading: Icon(
+                    Icons.delete_rounded,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  title: Text(
+                    'Delete message',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showDeleteConfirmation(message);
+                  },
+                ),
+              ],
               SizedBox(height: 10),
             ],
           ),
@@ -1292,6 +1329,68 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             ],
           ),
     );
+  }
+
+  void _showDeleteConfirmation(ChatMessage message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Delete Message',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'Are you sure you want to delete this message? This action cannot be undone.',
+            style: GoogleFonts.poppins(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.poppins(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteMessage(message.id);
+              },
+              child: Text(
+                'Delete',
+                style: GoogleFonts.poppins(
+                  color: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteMessage(String messageId) async {
+    try {
+      final success = await _chatService.deleteMessage(messageId);
+      if (success) {
+        _showSuccessSnackBar('Message deleted successfully');
+        // Real-time subscription will automatically update the messages
+      } else {
+        _showErrorSnackBar('Failed to delete message');
+      }
+    } catch (e) {
+      print('Error deleting message: $e');
+      _showErrorSnackBar('Failed to delete message');
+    }
   }
 
   Color _hexToColor(String hexString) {

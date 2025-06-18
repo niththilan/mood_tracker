@@ -488,4 +488,20 @@ class ChatService {
     ];
     return colors[(DateTime.now().millisecondsSinceEpoch % colors.length)];
   }
+
+  // Delete a message (only the message author can delete their own messages)
+  Future<bool> deleteMessage(String messageId) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) return false;
+
+      // Delete the message - the RLS policy ensures only the author can delete
+      await _supabase.from('chat_messages').delete().eq('id', messageId);
+
+      return true;
+    } catch (e) {
+      print('Error deleting message: $e');
+      return false;
+    }
+  }
 }
