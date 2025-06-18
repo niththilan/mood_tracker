@@ -32,9 +32,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       });
     } catch (error) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading analytics: $error')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading analytics: $error')),
+        );
+      }
     }
   }
 
@@ -83,8 +85,21 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text('Mood Analytics')),
-        body: Center(child: CircularProgressIndicator()),
+        appBar: AppBar(
+          title: Text('Analytics'),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading your mood insights...'),
+            ],
+          ),
+        ),
       );
     }
 
@@ -94,126 +109,400 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     final lastSevenDays = _getLastSevenDays();
 
     return Scaffold(
-      appBar: AppBar(title: Text('Mood Analytics')),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Stats Cards
-            Row(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar.large(
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: _buildStatCard(
-                    'Total Entries',
-                    allEntries.length.toString(),
-                    Icons.edit_note,
-                    Colors.blue,
+                Text(
+                  'Analytics',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: _buildStatCard(
-                    'Current Streak',
-                    '$currentStreak days',
-                    Icons.local_fire_department,
-                    Colors.orange,
+                Text(
+                  'Your mood insights',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    'Most Frequent',
-                    mostFrequentMood,
-                    Icons.trending_up,
-                    Colors.green,
-                  ),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: _buildStatCard(
-                    'Last 7 Days',
-                    '${lastSevenDays.length} entries',
-                    Icons.date_range,
-                    Colors.purple,
-                  ),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 24),
-
-            // Mood Distribution
-            Text(
-              'Mood Distribution',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            if (moodCounts.isNotEmpty)
-              ...moodCounts.entries
-                  .map(
-                    (entry) => _buildMoodBar(
-                      entry.key,
-                      entry.value,
-                      allEntries.length,
+            floating: true,
+            snap: true,
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Quick Stats Row
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        icon: Icons.trending_up,
+                        title: 'Total Entries',
+                        value: '${allEntries.length}',
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
-                  )
-                  .toList()
-            else
-              Text('No mood data available'),
-
-            SizedBox(height: 24),
-
-            // Recent Trend
-            Text(
-              'Recent Activity (Last 7 Days)',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            if (lastSevenDays.isNotEmpty)
-              Container(
-                height: 200,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: lastSevenDays.length,
-                  itemBuilder: (context, index) {
-                    final entry = lastSevenDays[index];
-                    return _buildDayCard(entry);
-                  },
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        icon: Icons.local_fire_department,
+                        title: 'Current Streak',
+                        value: '$currentStreak days',
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ],
                 ),
-              )
-            else
-              Text('No recent activity'),
-          ],
-        ),
+
+                SizedBox(height: 16),
+
+                // Most Frequent Mood
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.favorite,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Most Frequent Mood',
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        if (mostFrequentMood != 'No data')
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  mostFrequentMood.split(' ')[0], // Emoji part
+                                  style: TextStyle(fontSize: 32),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        mostFrequentMood,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${moodCounts[mostFrequentMood]} times',
+                                        style:
+                                            Theme.of(
+                                              context,
+                                            ).textTheme.bodySmall,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(context).colorScheme.surfaceVariant,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text('No mood data available'),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 16),
+
+                // Mood Distribution
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.pie_chart,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Mood Distribution',
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        if (moodCounts.isNotEmpty)
+                          ...moodCounts.entries.map((entry) {
+                            final percentage =
+                                (entry.value / allEntries.length * 100).round();
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(entry.key),
+                                      Text('${entry.value} ($percentage%)'),
+                                    ],
+                                  ),
+                                  SizedBox(height: 4),
+                                  LinearProgressIndicator(
+                                    value: entry.value / allEntries.length,
+                                    backgroundColor:
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceVariant,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      _getMoodColor(entry.key),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList()
+                        else
+                          Center(
+                            child: Text(
+                              'No mood data available',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 16),
+
+                // Recent Activity
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.history,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Last 7 Days',
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        Container(
+                          height: 60,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: 7,
+                            itemBuilder: (context, index) {
+                              final date = DateTime.now().subtract(
+                                Duration(days: 6 - index),
+                              );
+                              final dayEntries =
+                                  lastSevenDays
+                                      .where(
+                                        (entry) =>
+                                            entry.timestamp.day == date.day &&
+                                            entry.timestamp.month == date.month,
+                                      )
+                                      .toList();
+
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            dayEntries.isNotEmpty
+                                                ? Theme.of(
+                                                  context,
+                                                ).colorScheme.primaryContainer
+                                                : Theme.of(
+                                                  context,
+                                                ).colorScheme.surfaceVariant,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child:
+                                            dayEntries.isNotEmpty
+                                                ? Text(
+                                                  dayEntries.last.mood.split(
+                                                    ' ',
+                                                  )[0], // Emoji
+                                                  style: TextStyle(
+                                                    fontSize: 20,
+                                                  ),
+                                                )
+                                                : Icon(
+                                                  Icons.remove,
+                                                  size: 16,
+                                                  color:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                ),
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      [
+                                        'S',
+                                        'M',
+                                        'T',
+                                        'W',
+                                        'T',
+                                        'F',
+                                        'S',
+                                      ][date.weekday % 7],
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 16),
+
+                // Weekly Summary
+                if (lastSevenDays.isNotEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.insights,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Weekly Insights',
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 16),
+                          _buildInsightItem(
+                            'Entries this week',
+                            '${lastSevenDays.length}',
+                            Icons.calendar_today,
+                          ),
+                          _buildInsightItem(
+                            'Most active day',
+                            _getMostActiveDay(lastSevenDays),
+                            Icons.trending_up,
+                          ),
+                          _buildInsightItem(
+                            'Mood consistency',
+                            _getMoodConsistency(lastSevenDays),
+                            Icons.psychology,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ]),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
+  Widget _buildStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             Icon(icon, color: color, size: 32),
             SizedBox(height: 8),
             Text(
               value,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
             Text(
               title,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -222,83 +511,62 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
-  Widget _buildMoodBar(String mood, int count, int total) {
-    double percentage = count / total;
-
+  Widget _buildInsightItem(String title, String value, IconData icon) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          SizedBox(
-            width: 80,
-            child: Text(mood, style: TextStyle(fontSize: 16)),
-          ),
-          Expanded(
-            child: Container(
-              height: 24,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: percentage,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: _getMoodColor(mood),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 8),
-          Text('$count'),
+          Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+          SizedBox(width: 12),
+          Expanded(child: Text(title)),
+          Text(value, style: TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _buildDayCard(MoodEntry entry) {
-    return Container(
-      width: 100,
-      margin: EdgeInsets.only(right: 8),
-      child: Card(
-        child: Padding(
-          padding: EdgeInsets.all(8),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                entry.mood.split(' ')[0], // Just the emoji
-                style: TextStyle(fontSize: 32),
-              ),
-              SizedBox(height: 8),
-              Text(
-                '${entry.timestamp.day}/${entry.timestamp.month}',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-              if (entry.note.isNotEmpty)
-                Expanded(
-                  child: Text(
-                    entry.note,
-                    style: TextStyle(fontSize: 10),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Color _getMoodColor(String mood) {
-    if (mood.contains('Happy')) return Colors.green;
-    if (mood.contains('Sad')) return Colors.blue;
+    if (mood.contains('Happy') || mood.contains('Excited')) return Colors.green;
+    if (mood.contains('Sad') || mood.contains('Tired')) return Colors.blue;
     if (mood.contains('Angry')) return Colors.red;
     if (mood.contains('Anxious')) return Colors.orange;
+    if (mood.contains('Calm')) return Colors.purple;
     return Colors.grey;
+  }
+
+  String _getMostActiveDay(List<MoodEntry> entries) {
+    if (entries.isEmpty) return 'No data';
+
+    Map<int, int> dayCounts = {};
+    for (var entry in entries) {
+      int day = entry.timestamp.weekday;
+      dayCounts[day] = (dayCounts[day] ?? 0) + 1;
+    }
+
+    if (dayCounts.isEmpty) return 'No data';
+
+    int mostActiveDay =
+        dayCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    return days[mostActiveDay - 1];
+  }
+
+  String _getMoodConsistency(List<MoodEntry> entries) {
+    if (entries.length < 2) return 'Not enough data';
+
+    Set<String> uniqueMoods = entries.map((e) => e.mood).toSet();
+    double consistency = (7 - uniqueMoods.length) / 6;
+
+    if (consistency > 0.7) return 'Very consistent';
+    if (consistency > 0.4) return 'Moderately consistent';
+    return 'Varied';
   }
 }

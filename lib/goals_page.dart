@@ -47,7 +47,7 @@ class GoalsPage extends StatefulWidget {
   _GoalsPageState createState() => _GoalsPageState();
 }
 
-class _GoalsPageState extends State<GoalsPage> {
+class _GoalsPageState extends State<GoalsPage> with TickerProviderStateMixin {
   List<Goal> goals = [];
   bool isLoading = true;
   final supabase = Supabase.instance.client;
