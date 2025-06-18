@@ -1,10 +1,73 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:async';
 
 class ChatService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  // Stream controller for real-time messages
+  final StreamController<List<Map<String, dynamic>>> _messagesController =
+      StreamController<List<Map<String, dynamic>>>.broadcast();
+
+  // Stream controller for real-time reactions
+  final StreamController<Map<String, dynamic>> _reactionsController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  RealtimeChannel? _messageChannel;
+  RealtimeChannel? _reactionChannel;
+
   // Getter to access supabase client
   SupabaseClient get supabase => _supabase;
+
+  // Stream getters
+  Stream<List<Map<String, dynamic>>> get messagesStream =>
+      _messagesController.stream;
+  Stream<Map<String, dynamic>> get reactionsStream =>
+      _reactionsController.stream;
+
+  // Initialize real-time subscriptions
+  void initializeRealtime() {
+    // Subscribe to chat messages changes
+    _messageChannel =
+        _supabase
+            .channel('chat_messages_channel')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'chat_messages',
+              callback: (payload) async {
+                print('Real-time message event: ${payload.eventType}');
+                // Reload messages when any change occurs
+                final messages = await getMessages();
+                _messagesController.add(messages);
+              },
+            )
+            .subscribe();
+
+    // Subscribe to reactions changes
+    _reactionChannel =
+        _supabase
+            .channel('reactions_channel')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'message_reactions',
+              callback: (payload) async {
+                print('Real-time reaction event: ${payload.eventType}');
+                // Reload messages to get updated reactions
+                final messages = await getMessages();
+                _messagesController.add(messages);
+              },
+            )
+            .subscribe();
+  }
+
+  // Dispose real-time subscriptions
+  void dispose() {
+    _messageChannel?.unsubscribe();
+    _reactionChannel?.unsubscribe();
+    _messagesController.close();
+    _reactionsController.close();
+  }
 
   // Get all chat messages from database
   Future<List<Map<String, dynamic>>> getMessages() async {

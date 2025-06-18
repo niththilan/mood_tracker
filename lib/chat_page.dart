@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 import 'services/chat_service.dart';
 import 'models/chat_models.dart';
 
@@ -24,6 +25,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   bool isSending = false;
   bool _showScrollToBottom = false;
   String? currentUserId;
+  StreamSubscription? _messagesSubscription;
+
   final List<String> _quickReplies = [
     '👋 Hello!',
     '💙 Feeling good today',
@@ -74,6 +77,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     _typingController.dispose();
     _fabController.dispose();
     _messageAnimationController.dispose();
+    _messagesSubscription?.cancel();
+    _chatService.dispose();
     super.dispose();
   }
 
@@ -83,7 +88,15 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     // Get current user ID
     currentUserId = _chatService.supabase.auth.currentUser?.id;
 
-    // Load messages
+    // Initialize real-time subscriptions
+    _chatService.initializeRealtime();
+
+    // Set up real-time message listener
+    _messagesSubscription = _chatService.messagesStream.listen((messagesData) {
+      _updateMessagesFromData(messagesData);
+    });
+
+    // Load initial messages
     await _loadMessages();
 
     setState(() => isLoading = false);
@@ -134,13 +147,11 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
 
     try {
       final success = await _chatService.sendMessage(messageText);
-      if (success) {
-        await _loadMessages(); // Reload to get the new message
-        _scrollToBottom();
-      } else {
+      if (!success) {
         _showErrorSnackBar('Failed to send message');
         _messageController.text = messageText; // Restore text on failure
       }
+      // Real-time subscription will automatically update the messages
     } catch (e) {
       print('Error sending message: $e');
       _showErrorSnackBar('Failed to send message');
@@ -165,10 +176,62 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   Future<void> _addReaction(String messageId, String emoji) async {
     try {
       await _chatService.addReaction(messageId, emoji);
-      await _loadMessages(); // Reload to get updated reactions
+      // Real-time subscription will automatically update the reactions
     } catch (e) {
       print('Error adding reaction: $e');
       _showErrorSnackBar('Failed to add reaction');
+    }
+  }
+
+  Future<void> _updateMessagesFromData(
+    List<Map<String, dynamic>> messagesData,
+  ) async {
+    try {
+      final List<ChatMessage> loadedMessages = [];
+
+      for (final messageData in messagesData) {
+        final message = ChatMessage.fromJson(messageData);
+        loadedMessages.add(message);
+      }
+
+      // Get reactions for all messages
+      final messageIds = loadedMessages.map((m) => m.id).toList();
+      if (messageIds.isNotEmpty) {
+        final reactions = await _chatService.getReactions(messageIds);
+
+        // Update messages with reactions
+        for (int i = 0; i < loadedMessages.length; i++) {
+          final messageId = loadedMessages[i].id;
+          if (reactions.containsKey(messageId)) {
+            loadedMessages[i] = loadedMessages[i].copyWith(
+              reactions: reactions[messageId]!,
+            );
+          }
+        }
+      }
+
+      // Check if this is a new message at the end
+      bool shouldScrollToBottom = false;
+      if (messages.isNotEmpty && loadedMessages.isNotEmpty) {
+        final lastMessage = messages.last;
+        final newLastMessage = loadedMessages.last;
+        shouldScrollToBottom = lastMessage.id != newLastMessage.id;
+      }
+
+      setState(() {
+        messages = loadedMessages;
+      });
+
+      // Auto-scroll to bottom if new message and user is near bottom
+      if (shouldScrollToBottom && _scrollController.hasClients) {
+        final position = _scrollController.position;
+        final isNearBottom = position.pixels > position.maxScrollExtent - 200;
+        if (isNearBottom) {
+          _scrollToBottom();
+        }
+      }
+    } catch (e) {
+      print('Error updating messages: $e');
     }
   }
 
@@ -970,7 +1033,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                           _sendMessage();
                         },
                         backgroundColor:
-                            Theme.of(context).colorScheme.primaryContainer,
+                            Theme.of(context).colorScheme.secondaryContainer,
+                        side: BorderSide.none,
                       );
                     }).toList(),
               ),
