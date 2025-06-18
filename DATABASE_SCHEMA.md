@@ -11,6 +11,8 @@ This table stores user profile information for the chat.
 CREATE TABLE user_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
+  age INTEGER,
+  gender TEXT,
   avatar_emoji TEXT NOT NULL DEFAULT '😊',
   color TEXT NOT NULL DEFAULT '#4CAF50',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

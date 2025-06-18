@@ -15,6 +15,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
+  final _ageController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _isLogin = true;
@@ -23,6 +24,8 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
   bool _emailValid = false;
   bool _passwordValid = false;
   bool _nameValid = false;
+  bool _ageValid = false;
+  String? _selectedGender;
   late AnimationController _animationController;
   late AnimationController _modeController;
   late AnimationController _pulseController;
@@ -95,6 +98,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     _emailController.addListener(_validateEmailRealTime);
     _passwordController.addListener(_validatePasswordRealTime);
     _nameController.addListener(_validateNameRealTime);
+    _ageController.addListener(_validateAgeRealTime);
   }
 
   void _validateEmailRealTime() {
@@ -122,6 +126,14 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     }
   }
 
+  void _validateAgeRealTime() {
+    final age = int.tryParse(_ageController.text);
+    final isValid = age != null && age >= 13 && age <= 120;
+    if (isValid != _ageValid) {
+      setState(() => _ageValid = isValid);
+    }
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -132,6 +144,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _nameController.dispose();
+    _ageController.dispose();
     super.dispose();
   }
 
@@ -164,6 +177,30 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     }
     if (value.trim().length > 50) {
       return 'Name must be less than 50 characters';
+    }
+    return null;
+  }
+
+  String? _validateAge(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Age is required';
+    }
+    final age = int.tryParse(value.trim());
+    if (age == null) {
+      return 'Please enter a valid age';
+    }
+    if (age < 13) {
+      return 'You must be at least 13 years old';
+    }
+    if (age > 120) {
+      return 'Please enter a valid age';
+    }
+    return null;
+  }
+
+  String? _validateGender(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please select your gender';
     }
     return null;
   }
@@ -274,6 +311,8 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         await UserProfileService.createUserProfile(
           userId: response.user!.id,
           name: _nameController.text.trim(),
+          age: int.tryParse(_ageController.text.trim()),
+          gender: _selectedGender,
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -840,6 +879,153 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Age Field
+          AnimatedSlide(
+            duration: const Duration(milliseconds: 300),
+            offset: _isLogin ? const Offset(0, -1) : Offset.zero,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              opacity: _isLogin ? 0.0 : 1.0,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow:
+                      _ageValid
+                          ? [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                          : null,
+                ),
+                child: TextFormField(
+                  controller: _ageController,
+                  validator: _validateAge,
+                  enabled: !_isLoading,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Age',
+                    hintText: 'Enter your age',
+                    prefixIcon: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.cake_outlined,
+                        color:
+                            _ageValid
+                                ? Colors.green
+                                : Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    suffixIcon:
+                        _ageValid
+                            ? const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                            )
+                            : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color:
+                            _ageValid
+                                ? Colors.green
+                                : Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Gender Field
+          AnimatedSlide(
+            duration: const Duration(milliseconds: 300),
+            offset: _isLogin ? const Offset(0, -1) : Offset.zero,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              opacity: _isLogin ? 0.0 : 1.0,
+              child: DropdownButtonFormField<String>(
+                value: _selectedGender,
+                validator: _validateGender,
+                decoration: InputDecoration(
+                  labelText: 'Gender',
+                  hintText: 'Select your gender',
+                  prefixIcon: Icon(
+                    Icons.person_pin_outlined,
+                    color:
+                        _selectedGender != null
+                            ? Colors.green
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  suffixIcon:
+                      _selectedGender != null
+                          ? const Icon(Icons.check_circle, color: Colors.green)
+                          : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(
+                      color:
+                          _selectedGender != null
+                              ? Colors.green
+                              : Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'male', child: Text('Male')),
+                  DropdownMenuItem(value: 'female', child: Text('Female')),
+                  DropdownMenuItem(
+                    value: 'non-binary',
+                    child: Text('Non-binary'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'prefer-not-to-say',
+                    child: Text('Prefer not to say'),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedGender = value;
+                  });
+                },
               ),
             ),
           ),

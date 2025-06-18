@@ -23,6 +23,8 @@ class UserProfileService {
   static Future<bool> createUserProfile({
     required String userId,
     required String name,
+    int? age,
+    String? gender,
     String? avatarEmoji,
     String? color,
   }) async {
@@ -68,12 +70,17 @@ class UserProfileService {
           avatarEmojis[math.Random().nextInt(avatarEmojis.length)];
       final finalColor = color ?? colors[math.Random().nextInt(colors.length)];
 
-      await supabase.from('user_profiles').insert({
+      Map<String, dynamic> profileData = {
         'id': userId,
         'name': name.trim(),
         'avatar_emoji': finalAvatarEmoji,
         'color': finalColor,
-      });
+      };
+
+      if (age != null) profileData['age'] = age;
+      if (gender != null) profileData['gender'] = gender;
+
+      await supabase.from('user_profiles').insert(profileData);
 
       return true;
     } catch (error) {
@@ -85,6 +92,8 @@ class UserProfileService {
   static Future<bool> updateUserProfile({
     required String userId,
     String? name,
+    int? age,
+    String? gender,
     String? avatarEmoji,
     String? color,
   }) async {
@@ -92,6 +101,8 @@ class UserProfileService {
       Map<String, dynamic> updates = {};
 
       if (name != null) updates['name'] = name.trim();
+      if (age != null) updates['age'] = age;
+      if (gender != null) updates['gender'] = gender;
       if (avatarEmoji != null) updates['avatar_emoji'] = avatarEmoji;
       if (color != null) updates['color'] = color;
 
