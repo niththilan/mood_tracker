@@ -440,11 +440,14 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
               child: Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: _buildAuthCard(context),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: _slideAnimation,
+                        child: _buildAuthCard(context),
+                      ),
                     ),
                   ),
                 ),
@@ -969,63 +972,94 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
             child: AnimatedOpacity(
               duration: const Duration(milliseconds: 300),
               opacity: _isLogin ? 0.0 : 1.0,
-              child: DropdownButtonFormField<String>(
-                value: _selectedGender,
-                validator: _validateGender,
-                decoration: InputDecoration(
-                  labelText: 'Gender',
-                  hintText: 'Select your gender',
-                  prefixIcon: Icon(
-                    Icons.person_pin_outlined,
-                    color:
-                        _selectedGender != null
-                            ? Colors.green
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  suffixIcon:
-                      _selectedGender != null
-                          ? const Icon(Icons.check_circle, color: Colors.green)
-                          : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: DropdownButtonFormField<String>(
+                  value: _selectedGender,
+                  validator: _validateGender,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: 'Gender',
+                    hintText: 'Select your gender',
+                    prefixIcon: Icon(
+                      Icons.person_pin_outlined,
                       color:
                           _selectedGender != null
                               ? Colors.green
-                              : Theme.of(context).colorScheme.outline,
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    suffixIcon:
+                        _selectedGender != null
+                            ? const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                            )
+                            : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color:
+                            _selectedGender != null
+                                ? Colors.green
+                                : Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 2,
+                  items: [
+                    DropdownMenuItem(
+                      value: 'male',
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Text('Male', overflow: TextOverflow.ellipsis),
+                      ),
                     ),
-                  ),
+                    DropdownMenuItem(
+                      value: 'female',
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Text('Female', overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'non-binary',
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Text(
+                          'Non-binary',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'prefer-not-to-say',
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Text(
+                          'Prefer not to say',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedGender = value;
+                    });
+                  },
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'male', child: Text('Male')),
-                  DropdownMenuItem(value: 'female', child: Text('Female')),
-                  DropdownMenuItem(
-                    value: 'non-binary',
-                    child: Text('Non-binary'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'prefer-not-to-say',
-                    child: Text('Prefer not to say'),
-                  ),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedGender = value;
-                  });
-                },
               ),
             ),
           ),
