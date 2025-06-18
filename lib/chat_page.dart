@@ -17,13 +17,11 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   final ChatService _chatService = ChatService();
   late AnimationController _typingController;
-  late AnimationController _fabController;
   late AnimationController _messageAnimationController;
 
   List<ChatMessage> messages = [];
   bool isLoading = true;
   bool isSending = false;
-  bool _showScrollToBottom = false;
   String? currentUserId;
   StreamSubscription? _messagesSubscription;
 
@@ -44,28 +42,10 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
       vsync: this,
     )..repeat(reverse: true);
 
-    _fabController = AnimationController(
-      duration: Duration(milliseconds: 300),
-      vsync: this,
-    );
-
     _messageAnimationController = AnimationController(
       duration: Duration(milliseconds: 500),
       vsync: this,
     );
-
-    // Add scroll listener to show/hide scroll-to-bottom button
-    _scrollController.addListener(() {
-      final showButton = _scrollController.offset > 200;
-      if (_showScrollToBottom != showButton) {
-        setState(() => _showScrollToBottom = showButton);
-        if (showButton) {
-          _fabController.forward();
-        } else {
-          _fabController.reverse();
-        }
-      }
-    });
 
     _initializeChat();
   }
@@ -75,7 +55,6 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     _messageController.dispose();
     _scrollController.dispose();
     _typingController.dispose();
-    _fabController.dispose();
     _messageAnimationController.dispose();
     _messagesSubscription?.cancel();
     _chatService.dispose();
@@ -315,24 +294,6 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
               _buildMessageInput(),
             ],
           ),
-          // Scroll to bottom FAB
-          if (_showScrollToBottom)
-            Positioned(
-              bottom: 100,
-              right: 16,
-              child: ScaleTransition(
-                scale: _fabController,
-                child: FloatingActionButton.small(
-                  heroTag: "scrollToBottom",
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    _scrollToBottom();
-                  },
-                  child: Icon(Icons.keyboard_arrow_down_rounded),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -533,27 +494,14 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                     ),
                   Padding(
                     padding: EdgeInsets.only(top: 6, left: 4, right: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.access_time_rounded,
-                          size: 12,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurfaceVariant.withOpacity(0.6),
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          DateFormat('HH:mm').format(message.timestamp),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant.withOpacity(0.6),
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      DateFormat('HH:mm').format(message.timestamp),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                      ),
                     ),
                   ),
                 ],
