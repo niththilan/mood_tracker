@@ -856,106 +856,153 @@ class _MoodHomePageState extends State<MoodHomePage>
                 ],
               ),
               const SizedBox(height: 20),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.85,
-                ),
-                itemCount: moods.length,
-                itemBuilder: (context, index) {
-                  final mood = moods[index];
-                  final isSelected = selectedMood == mood['name'];
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isLandscape =
+                      MediaQuery.of(context).orientation ==
+                      Orientation.landscape;
 
-                  return GestureDetector(
-                    onTap:
-                        isLoading
-                            ? null
-                            : () {
-                              HapticFeedback.lightImpact();
-                              setState(() {
-                                selectedMood = mood['name'];
-                                selectedMoodEmoji = mood['emoji'];
-                              });
-                            },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      transform:
-                          Matrix4.identity()..scale(isSelected ? 1.05 : 1.0),
-                      decoration: BoxDecoration(
-                        color:
-                            isSelected
-                                ? Theme.of(context).colorScheme.primaryContainer
-                                : Theme.of(
-                                  context,
-                                ).colorScheme.surfaceVariant.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(16),
-                        border:
-                            isSelected
-                                ? Border.all(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  width: 2,
-                                )
-                                : Border.all(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outline.withOpacity(0.2),
-                                  width: 1,
-                                ),
-                        boxShadow:
-                            isSelected
-                                ? [
-                                  BoxShadow(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ]
-                                : [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 200),
-                            style: TextStyle(fontSize: isSelected ? 36 : 32),
-                            child: Text(mood['emoji']!),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            mood['name']!,
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              fontWeight:
-                                  isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                              color:
-                                  isSelected
-                                      ? Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer
-                                      : Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: isLandscape ? 6 : 4,
+                      crossAxisSpacing: isLandscape ? 8 : 12,
+                      mainAxisSpacing: isLandscape ? 8 : 12,
+                      childAspectRatio: isLandscape ? 0.8 : 0.9,
                     ),
+                    itemCount: moods.length,
+                    itemBuilder: (context, index) {
+                      final mood = moods[index];
+                      final isSelected = selectedMood == mood['name'];
+
+                      return GestureDetector(
+                        onTap:
+                            isLoading
+                                ? null
+                                : () {
+                                  HapticFeedback.lightImpact();
+                                  setState(() {
+                                    selectedMood = mood['name'];
+                                    selectedMoodEmoji = mood['emoji'];
+                                  });
+                                },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          transform:
+                              Matrix4.identity()..scale(
+                                isSelected ? 1.02 : 1.0,
+                              ), // Reduced scale to prevent overflow
+                          decoration: BoxDecoration(
+                            color:
+                                isSelected
+                                    ? Theme.of(
+                                      context,
+                                    ).colorScheme.primaryContainer
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .surfaceVariant
+                                        .withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(16),
+                            border:
+                                isSelected
+                                    ? Border.all(
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                      width: 2,
+                                    )
+                                    : Border.all(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outline.withOpacity(0.2),
+                                      width: 1,
+                                    ),
+                            boxShadow:
+                                isSelected
+                                    ? [
+                                      BoxShadow(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                    : [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                          ),
+                          child: Container(
+                            padding: EdgeInsets.all(isLandscape ? 4 : 8),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Emoji with constrained size
+                                Flexible(
+                                  flex: 3,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: AnimatedDefaultTextStyle(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      style: TextStyle(
+                                        fontSize:
+                                            isLandscape
+                                                ? (isSelected ? 24 : 22)
+                                                : (isSelected ? 30 : 28),
+                                      ),
+                                      child: Text(
+                                        mood['emoji']!,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // Spacing
+                                SizedBox(height: isLandscape ? 2 : 4),
+
+                                // Mood name with constrained size
+                                Flexible(
+                                  flex: 2,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      mood['name']!,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: isLandscape ? 10 : 12,
+                                        fontWeight:
+                                            isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.w500,
+                                        color:
+                                            isSelected
+                                                ? Theme.of(
+                                                  context,
+                                                ).colorScheme.onPrimaryContainer
+                                                : Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
