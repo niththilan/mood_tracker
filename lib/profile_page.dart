@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
 import 'services/user_profile_service.dart';
+import 'services/theme_service.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -335,6 +337,10 @@ class _ProfilePageState extends State<ProfilePage>
 
             // Color Selection
             _buildColorSelection(),
+            SizedBox(height: 24),
+
+            // Theme Settings
+            _buildThemeSettings(),
             SizedBox(height: 32),
 
             // Save Button
@@ -861,5 +867,153 @@ class _ProfilePageState extends State<ProfilePage>
       return '${months[date.month - 1]} ${date.year}';
     }
     return 'Unknown';
+  }
+
+  Widget _buildThemeSettings() {
+    return Consumer<ThemeService>(
+      builder: (context, themeService, child) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.palette_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 24,
+                ),
+                SizedBox(width: 12),
+                Text(
+                  'Theme Settings',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceVariant.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                ),
+              ),
+              child: Column(
+                children: [
+                  _buildThemeOption(
+                    context,
+                    themeService,
+                    ThemeMode.system,
+                    'System',
+                    'Follow device settings',
+                    Icons.settings_outlined,
+                  ),
+                  SizedBox(height: 12),
+                  _buildThemeOption(
+                    context,
+                    themeService,
+                    ThemeMode.light,
+                    'Light',
+                    'Always use light theme',
+                    Icons.light_mode_outlined,
+                  ),
+                  SizedBox(height: 12),
+                  _buildThemeOption(
+                    context,
+                    themeService,
+                    ThemeMode.dark,
+                    'Dark',
+                    'Always use dark theme',
+                    Icons.dark_mode_outlined,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildThemeOption(
+    BuildContext context,
+    ThemeService themeService,
+    ThemeMode themeMode,
+    String title,
+    String subtitle,
+    IconData icon,
+  ) {
+    final isSelected = themeService.themeMode == themeMode;
+
+    return GestureDetector(
+      onTap: () => themeService.setThemeMode(themeMode),
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color:
+              isSelected
+                  ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                  : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color:
+                  isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+              size: 24,
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      color:
+                          isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }

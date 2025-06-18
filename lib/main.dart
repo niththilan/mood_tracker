@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'analytics_page.dart';
 import 'enhanced_analytics_page.dart';
 import 'goals_page.dart';
@@ -13,6 +14,8 @@ import 'quick_mood_entry.dart';
 import 'mood_journal.dart';
 import 'profile_page.dart';
 import 'services/user_profile_service.dart';
+import 'services/theme_service.dart';
+import 'widgets/theme_toggle_widget.dart';
 
 // Global navigator key
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -32,56 +35,74 @@ void main() async {
     // Continue anyway - we'll handle errors in UI
   }
 
-  runApp(MoodTrackerApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => ThemeService(),
+      child: MoodTrackerApp(),
+    ),
+  );
 }
 
 class MoodTrackerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      title: 'MoodFlow - Daily Mood Tracker',
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: GoogleFonts.poppins().fontFamily,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6750A4),
-          brightness: Brightness.light,
-        ),
-        appBarTheme: const AppBarTheme(elevation: 0, scrolledUnderElevation: 1),
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+    return Consumer<ThemeService>(
+      builder: (context, themeService, child) {
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          title: 'MoodFlow - Daily Mood Tracker',
+          theme: ThemeData(
+            useMaterial3: true,
+            fontFamily: GoogleFonts.poppins().fontFamily,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF6750A4),
+              brightness: Brightness.light,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            appBarTheme: const AppBarTheme(
+              elevation: 0,
+              scrolledUnderElevation: 1,
+            ),
+            cardTheme: CardThemeData(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            filledButtonTheme: FilledButtonThemeData(
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        fontFamily: GoogleFonts.poppins().fontFamily,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6750A4),
-          brightness: Brightness.dark,
-        ),
-        appBarTheme: const AppBarTheme(elevation: 0, scrolledUnderElevation: 1),
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            fontFamily: GoogleFonts.poppins().fontFamily,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF6750A4),
+              brightness: Brightness.dark,
+            ),
+            appBarTheme: const AppBarTheme(
+              elevation: 0,
+              scrolledUnderElevation: 1,
+            ),
+            cardTheme: CardThemeData(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
           ),
-        ),
-      ),
-      themeMode: ThemeMode.system,
-      home: AuthWrapper(),
-      debugShowCheckedModeBanner: false,
+          themeMode: themeService.themeMode,
+          home: AuthWrapper(),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }
@@ -1668,6 +1689,10 @@ class _MoodHomePageState extends State<MoodHomePage>
                     );
                   },
                 ),
+              ),
+              Container(
+                margin: EdgeInsets.only(right: 8, top: 8),
+                child: ThemeToggleWidget(isCompact: true),
               ),
               Container(
                 margin: EdgeInsets.only(right: 16, top: 8),
