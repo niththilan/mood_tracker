@@ -1600,51 +1600,16 @@ class _MoodHomePageState extends State<MoodHomePage>
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar.large(
-            expandedHeight: 140,
+          SliverAppBar(
+            expandedHeight: 80,
             floating: true,
             snap: true,
             pinned: false,
             centerTitle: false,
-            flexibleSpace: FlexibleSpaceBar(
-              title:
-                  null, // Remove title from FlexibleSpaceBar to avoid overlap
-              titlePadding: EdgeInsets.zero,
-              background: Container(
-                padding: EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  bottom: 24,
-                  top: 80,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'MoodFlow',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 28,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'How are you feeling today?',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            toolbarHeight: 80,
             actions: [
               Container(
-                margin: EdgeInsets.only(right: 8, top: 8),
+                margin: EdgeInsets.only(right: 8),
                 child: IconButton(
                   icon: Container(
                     padding: EdgeInsets.all(8),
@@ -1691,7 +1656,7 @@ class _MoodHomePageState extends State<MoodHomePage>
                 ),
               ),
               Container(
-                margin: EdgeInsets.only(right: 8, top: 8),
+                margin: EdgeInsets.only(right: 8),
                 child: IconButton(
                   icon: Container(
                     padding: EdgeInsets.all(8),
@@ -1738,11 +1703,11 @@ class _MoodHomePageState extends State<MoodHomePage>
                 ),
               ),
               Container(
-                margin: EdgeInsets.only(right: 8, top: 8),
+                margin: EdgeInsets.only(right: 8),
                 child: ThemeToggleWidget(isCompact: true),
               ),
               Container(
-                margin: EdgeInsets.only(right: 16, top: 8),
+                margin: EdgeInsets.only(right: 16),
                 child: PopupMenuButton<String>(
                   icon: Container(
                     padding: EdgeInsets.all(8),
@@ -1859,7 +1824,7 @@ class _MoodHomePageState extends State<MoodHomePage>
             ],
           ),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 // Welcome Section
