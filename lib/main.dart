@@ -15,6 +15,7 @@ import 'mood_journal.dart';
 import 'profile_page.dart';
 import 'services/user_profile_service.dart';
 import 'services/theme_service.dart';
+import 'services/google_auth_service.dart';
 import 'widgets/theme_toggle_widget.dart';
 import 'widgets/color_theme_button.dart';
 
@@ -550,8 +551,13 @@ class _MoodHomePageState extends State<MoodHomePage>
 
   Future<void> _signOut() async {
     try {
-      // Immediately sign out and navigate
-      await supabase.auth.signOut();
+      // Sign out from Google first (if signed in with Google)
+      if (await GoogleAuthService.isSignedIn()) {
+        await GoogleAuthService.signOut();
+      } else {
+        // Regular Supabase sign out for email/password users
+        await supabase.auth.signOut();
+      }
 
       // Use the global navigator to immediately navigate to auth page
       // This ensures immediate UI update

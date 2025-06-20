@@ -31,6 +31,9 @@ dependencies:
   flutter:
     sdk: flutter
   supabase_flutter: ^2.9.0
+  google_sign_in: ^6.2.1
+  sign_in_with_apple: ^6.1.0
+  crypto: ^3.0.3
   
   # UI and Animation packages
   cupertino_icons: ^1.0.8

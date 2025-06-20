@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'main.dart';
 import 'services/user_profile_service.dart';
+import 'services/google_auth_service.dart';
 
 class AuthPage extends StatefulWidget {
   @override
@@ -460,6 +461,67 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
           errorMessage =
               'Network connection error. Please check your internet connection.';
         }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(child: Text(errorMessage)),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await GoogleAuthService.signInWithGoogle();
+
+      if (response?.user != null && mounted) {
+        final user = response!.user!;
+        // Check if user profile exists
+        final existingProfile = await UserProfileService.getUserProfile(
+          user.id,
+        );
+
+        if (existingProfile == null) {
+          // Create a basic profile for Google users
+          final googleUser = GoogleAuthService.getCurrentUser();
+          await UserProfileService.createUserProfile(
+            userId: user.id,
+            name:
+                googleUser?.displayName ?? user.email?.split('@')[0] ?? 'User',
+            age: null, // Can be updated later in profile
+            gender: null, // Can be updated later in profile
+          );
+        }
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => MoodHomePage()),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        String errorMessage = 'Google sign-in failed';
+        if (error.toString().contains('network')) {
+          errorMessage = 'Network error: Please check your internet connection';
+        } else if (error.toString().contains('cancelled')) {
+          errorMessage = 'Sign-in cancelled';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -1424,21 +1486,109 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
 
         const SizedBox(height: 16),
 
-        // Additional helpful text
-        AnimatedDefaultTextStyle(
+        // Divider with "OR" text
+        Row(
+          children: [
+            Expanded(
+              child: Divider(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                thickness: 1,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'OR',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Divider(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                thickness: 1,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 24),
+
+        // Google Sign-In Button
+        AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          style:
-              Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ) ??
-              const TextStyle(),
-          child: Text(
-            _isLogin
-                ? 'New to MoodFlow? Switch to Sign Up above'
-                : 'Already have an account? Switch to Sign In above',
-            textAlign: TextAlign.center,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+              width: 1.5,
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Colors.grey[50]!],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _isLoading ? null : _signInWithGoogle,
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Google Logo using Unicode
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'G',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[600],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      _isLogin ? 'Sign in with Google' : 'Sign up with Google',
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
+
+        // ...existing code...
       ],
     );
   }
