@@ -796,37 +796,52 @@ class _MoodHomePageState extends State<MoodHomePage>
 
   Widget _buildMoodSelectionCard() {
     return Card(
-      elevation: 4,
-      shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+      elevation: 8,
+      shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
               Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.primaryContainer.withOpacity(0.1),
               Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
             ],
           ),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            width: 1,
+          ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: EdgeInsets.all(10),
+                  AnimatedContainer(
+                    duration: Duration(milliseconds: 300),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Icon(
                       Icons.mood_rounded,
                       color: Theme.of(context).colorScheme.primary,
-                      size: 24,
+                      size: 28,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -881,41 +896,55 @@ class _MoodHomePageState extends State<MoodHomePage>
                             isLoading
                                 ? null
                                 : () {
-                                  HapticFeedback.lightImpact();
+                                  HapticFeedback.mediumImpact();
                                   setState(() {
                                     selectedMood = mood['name'];
                                     selectedMoodEmoji = mood['emoji'];
                                   });
                                 },
                         child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.easeInOutBack,
                           transform:
-                              Matrix4.identity()..scale(
-                                isSelected ? 1.02 : 1.0,
-                              ), // Reduced scale to prevent overflow
+                              Matrix4.identity()
+                                ..scale(isSelected ? 1.05 : 1.0)
+                                ..rotateZ(isSelected ? 0.02 : 0.0),
                           decoration: BoxDecoration(
-                            color:
+                            gradient:
                                 isSelected
-                                    ? Theme.of(
-                                      context,
-                                    ).colorScheme.primaryContainer
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .surfaceVariant
-                                        .withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(16),
+                                    ? LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.primaryContainer,
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.secondaryContainer,
+                                      ],
+                                    )
+                                    : LinearGradient(
+                                      colors: [
+                                        Theme.of(context)
+                                            .colorScheme
+                                            .surfaceVariant
+                                            .withOpacity(0.6),
+                                        Theme.of(context).colorScheme.surface,
+                                      ],
+                                    ),
+                            borderRadius: BorderRadius.circular(20),
                             border:
                                 isSelected
                                     ? Border.all(
                                       color:
                                           Theme.of(context).colorScheme.primary,
-                                      width: 2,
+                                      width: 2.5,
                                     )
                                     : Border.all(
                                       color: Theme.of(
                                         context,
-                                      ).colorScheme.outline.withOpacity(0.2),
+                                      ).colorScheme.outline.withOpacity(0.3),
                                       width: 1,
                                     ),
                             boxShadow:
@@ -924,64 +953,86 @@ class _MoodHomePageState extends State<MoodHomePage>
                                       BoxShadow(
                                         color: Theme.of(
                                           context,
-                                        ).colorScheme.primary.withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
+                                        ).colorScheme.primary.withOpacity(0.4),
+                                        blurRadius: 15,
+                                        offset: const Offset(0, 6),
+                                        spreadRadius: 1,
+                                      ),
+                                      BoxShadow(
+                                        color: Colors.white.withOpacity(0.1),
+                                        blurRadius: 5,
+                                        offset: const Offset(0, -2),
                                       ),
                                     ]
                                     : [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
+                                        color: Colors.black.withOpacity(0.08),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
                                       ),
                                     ],
                           ),
                           child: Container(
-                            padding: EdgeInsets.all(isLandscape ? 4 : 8),
+                            padding: EdgeInsets.all(isLandscape ? 6 : 10),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Emoji with constrained size
+                                // Emoji with pulse animation when selected
                                 Flexible(
                                   flex: 3,
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: AnimatedDefaultTextStyle(
-                                      duration: const Duration(
-                                        milliseconds: 200,
-                                      ),
-                                      style: TextStyle(
-                                        fontSize:
-                                            isLandscape
-                                                ? (isSelected ? 24 : 22)
-                                                : (isSelected ? 30 : 28),
-                                      ),
-                                      child: Text(
-                                        mood['emoji']!,
-                                        textAlign: TextAlign.center,
+                                  child: AnimatedContainer(
+                                    duration: Duration(milliseconds: 300),
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: AnimatedDefaultTextStyle(
+                                        duration: const Duration(
+                                          milliseconds: 300,
+                                        ),
+                                        style: TextStyle(
+                                          fontSize:
+                                              isLandscape
+                                                  ? (isSelected ? 28 : 24)
+                                                  : (isSelected ? 36 : 32),
+                                          shadows:
+                                              isSelected
+                                                  ? [
+                                                    Shadow(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .primary
+                                                          .withOpacity(0.3),
+                                                      blurRadius: 8,
+                                                      offset: Offset(0, 2),
+                                                    ),
+                                                  ]
+                                                  : null,
+                                        ),
+                                        child: Text(
+                                          mood['emoji']!,
+                                          textAlign: TextAlign.center,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
 
                                 // Spacing
-                                SizedBox(height: isLandscape ? 2 : 4),
+                                SizedBox(height: isLandscape ? 3 : 6),
 
-                                // Mood name with constrained size
+                                // Mood name with enhanced styling
                                 Flexible(
                                   flex: 2,
                                   child: FittedBox(
                                     fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      mood['name']!,
+                                    child: AnimatedDefaultTextStyle(
+                                      duration: Duration(milliseconds: 300),
                                       style: GoogleFonts.poppins(
-                                        fontSize: isLandscape ? 10 : 12,
+                                        fontSize: isLandscape ? 11 : 13,
                                         fontWeight:
                                             isSelected
                                                 ? FontWeight.bold
-                                                : FontWeight.w500,
+                                                : FontWeight.w600,
                                         color:
                                             isSelected
                                                 ? Theme.of(
@@ -990,10 +1041,14 @@ class _MoodHomePageState extends State<MoodHomePage>
                                                 : Theme.of(
                                                   context,
                                                 ).colorScheme.onSurfaceVariant,
+                                        letterSpacing: 0.5,
                                       ),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                      child: Text(
+                                        mood['name']!,
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -1007,142 +1062,241 @@ class _MoodHomePageState extends State<MoodHomePage>
                 },
               ),
               if (selectedMood != null) ...[
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 AnimatedContainer(
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeInOut,
-                  padding: const EdgeInsets.all(16),
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeInOutBack,
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                       colors: [
                         Theme.of(
                           context,
-                        ).colorScheme.primaryContainer.withOpacity(0.8),
+                        ).colorScheme.primaryContainer.withOpacity(0.9),
                         Theme.of(
                           context,
-                        ).colorScheme.secondaryContainer.withOpacity(0.8),
+                        ).colorScheme.secondaryContainer.withOpacity(0.9),
+                        Theme.of(
+                          context,
+                        ).colorScheme.tertiaryContainer.withOpacity(0.6),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withOpacity(0.3),
-                      width: 1,
+                      ).colorScheme.primary.withOpacity(0.4),
+                      width: 1.5,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.2),
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        padding: EdgeInsets.all(8),
+                      AnimatedContainer(
+                        duration: Duration(milliseconds: 300),
+                        padding: EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Text(
                           selectedMoodEmoji!,
-                          style: const TextStyle(fontSize: 24),
+                          style: const TextStyle(fontSize: 28),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'You selected: $selectedMood',
+                            AnimatedDefaultTextStyle(
+                              duration: Duration(milliseconds: 300),
                               style: GoogleFonts.poppins(
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color:
                                     Theme.of(
                                       context,
                                     ).colorScheme.onPrimaryContainer,
                               ),
+                              child: Text('You selected: $selectedMood'),
                             ),
-                            Text(
-                              moods.firstWhere(
-                                (m) => m['name'] == selectedMood,
-                              )['description']!,
+                            SizedBox(height: 4),
+                            AnimatedDefaultTextStyle(
+                              duration: Duration(milliseconds: 300),
                               style: GoogleFonts.poppins(
-                                fontSize: 12,
+                                fontSize: 13,
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onPrimaryContainer
-                                    .withOpacity(0.8),
+                                    .withOpacity(0.85),
+                                height: 1.3,
+                              ),
+                              child: Text(
+                                moods.firstWhere(
+                                  (m) => m['name'] == selectedMood,
+                                )['description']!,
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                      // Add a subtle pulse animation
+                      AnimatedContainer(
+                        duration: Duration(milliseconds: 1000),
+                        width: 4,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
                     ],
                   ),
                 ),
               ],
-              const SizedBox(height: 20),
-              Container(
+              const SizedBox(height: 24),
+              AnimatedContainer(
+                duration: Duration(milliseconds: 300),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: Theme.of(
                       context,
                     ).colorScheme.outline.withOpacity(0.3),
                   ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Theme.of(context).colorScheme.surface,
+                      Theme.of(
+                        context,
+                      ).colorScheme.surfaceVariant.withOpacity(0.3),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: TextField(
                   controller: noteController,
                   enabled: !isLoading,
-                  maxLines: 3,
+                  maxLines: 4,
+                  style: GoogleFonts.poppins(fontSize: 14, height: 1.4),
                   decoration: InputDecoration(
                     labelText: 'Add a note (optional)',
-                    hintText: 'What\'s on your mind today?',
+                    hintText:
+                        'What\'s on your mind today? Share your thoughts...',
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(16),
+                    contentPadding: EdgeInsets.all(20),
                     prefixIcon: Padding(
-                      padding: EdgeInsets.all(12),
+                      padding: EdgeInsets.all(16),
                       child: Icon(
                         Icons.edit_note_rounded,
                         color: Theme.of(context).colorScheme.primary,
+                        size: 24,
                       ),
+                    ),
+                    labelStyle: GoogleFonts.poppins(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.7),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    hintStyle: GoogleFonts.poppins(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withOpacity(0.6),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 28),
               SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: 56,
                 child: AnimatedContainer(
-                  duration: Duration(milliseconds: 200),
+                  duration: Duration(milliseconds: 300),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient:
+                        (selectedMood != null && !isLoading)
+                            ? LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Theme.of(context).colorScheme.primary,
+                                Theme.of(context).colorScheme.secondary,
+                              ],
+                            )
+                            : null,
+                    boxShadow:
+                        (selectedMood != null && !isLoading)
+                            ? [
+                              BoxShadow(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withOpacity(0.4),
+                                blurRadius: 15,
+                                offset: Offset(0, 6),
+                              ),
+                            ]
+                            : null,
+                  ),
                   child: FilledButton.icon(
                     onPressed:
                         (selectedMood != null && !isLoading)
                             ? addMoodEntry
                             : null,
                     style: FilledButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
                       ),
+                      elevation: 0,
                     ),
                     icon:
                         isLoading
                             ? const SizedBox(
-                              width: 20,
-                              height: 20,
+                              width: 24,
+                              height: 24,
                               child: CircularProgressIndicator(
-                                strokeWidth: 2,
+                                strokeWidth: 2.5,
                                 color: Colors.white,
                               ),
                             )
-                            : Icon(Icons.add_circle_outline_rounded),
+                            : Icon(Icons.add_circle_outline_rounded, size: 24),
                     label: Text(
-                      isLoading ? 'Logging...' : 'Log Mood Entry',
+                      isLoading ? 'Logging your mood...' : 'Log Mood Entry',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
@@ -1318,21 +1472,26 @@ class _MoodHomePageState extends State<MoodHomePage>
     final hour = DateTime.now().hour;
     String greeting;
     IconData greetingIcon;
+    Color greetingColor;
 
     if (hour < 12) {
       greeting = 'Good Morning! ☀️';
       greetingIcon = Icons.wb_sunny_rounded;
+      greetingColor = Colors.orange;
     } else if (hour < 17) {
       greeting = 'Good Afternoon! 🌤️';
       greetingIcon = Icons.wb_cloudy_rounded;
+      greetingColor = Colors.blue;
     } else {
       greeting = 'Good Evening! 🌙';
       greetingIcon = Icons.nightlight_round;
+      greetingColor = Colors.indigo;
     }
 
-    return Container(
+    return AnimatedContainer(
+      duration: Duration(milliseconds: 600),
       width: double.infinity,
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -1340,94 +1499,144 @@ class _MoodHomePageState extends State<MoodHomePage>
           colors: [
             Theme.of(context).colorScheme.primaryContainer,
             Theme.of(context).colorScheme.secondaryContainer,
+            Theme.of(context).colorScheme.tertiaryContainer.withOpacity(0.8),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+            blurRadius: 20,
+            offset: Offset(0, 8),
+            spreadRadius: 2,
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, -2),
           ),
         ],
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                greetingIcon,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                size: 28,
+              AnimatedContainer(
+                duration: Duration(milliseconds: 500),
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: greetingColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: greetingColor.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Icon(greetingIcon, color: greetingColor, size: 32),
               ),
-              SizedBox(width: 12),
+              SizedBox(width: 16),
               Expanded(
-                child: Text(
-                  greeting,
+                child: AnimatedDefaultTextStyle(
+                  duration: Duration(milliseconds: 300),
                   style: GoogleFonts.poppins(
-                    fontSize: 20,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    letterSpacing: 0.5,
                   ),
+                  child: Text(greeting),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 12),
-          Text(
-            'Ready to track your mood and connect with your inner self?',
+          SizedBox(height: 16),
+          AnimatedDefaultTextStyle(
+            duration: Duration(milliseconds: 300),
             style: GoogleFonts.poppins(
-              fontSize: 14,
+              fontSize: 15,
               color: Theme.of(
                 context,
-              ).colorScheme.onPrimaryContainer.withOpacity(0.8),
-              height: 1.4,
+              ).colorScheme.onPrimaryContainer.withOpacity(0.85),
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+            ),
+            child: Text(
+              'Ready to track your mood and connect with your inner self? Let\'s make today amazing!',
             ),
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 20),
           Row(
             children: [
               Expanded(
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 400),
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                        Theme.of(
+                          context,
+                        ).colorScheme.secondary.withOpacity(0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.3),
+                      width: 1,
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         Icons.emoji_events_rounded,
-                        size: 16,
+                        size: 18,
                         color: Theme.of(context).colorScheme.primary,
                       ),
-                      SizedBox(width: 6),
-                      Text(
-                        '${moodHistory.length} entries logged',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context).colorScheme.primary,
+                      SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          '${moodHistory.length} entries logged',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              SizedBox(width: 8),
-              Container(
-                padding: EdgeInsets.all(8),
+              SizedBox(width: 12),
+              AnimatedContainer(
+                duration: Duration(milliseconds: 400),
+                padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Icon(
                   Icons.favorite_rounded,
-                  size: 16,
+                  size: 18,
                   color: Colors.red,
                 ),
               ),
@@ -1552,39 +1761,69 @@ class _MoodHomePageState extends State<MoodHomePage>
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        padding: EdgeInsets.all(16),
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeInOutBack,
+        padding: EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2), width: 1),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [color.withOpacity(0.15), color.withOpacity(0.08)],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.2),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+              spreadRadius: 1,
+            ),
+            BoxShadow(
+              color: Colors.white.withOpacity(0.1),
+              blurRadius: 6,
+              offset: Offset(0, -2),
+            ),
+          ],
         ),
         child: Column(
           children: [
-            Container(
-              padding: EdgeInsets.all(12),
+            AnimatedContainer(
+              duration: Duration(milliseconds: 300),
+              padding: EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
+                gradient: LinearGradient(
+                  colors: [color.withOpacity(0.3), color.withOpacity(0.2)],
+                ),
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ],
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: color, size: 28),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 12),
             Text(
               title,
               style: GoogleFonts.poppins(
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
+                letterSpacing: 0.3,
               ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 2),
+            SizedBox(height: 4),
             Text(
               subtitle,
               style: GoogleFonts.poppins(
                 fontSize: 11,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
             ),
@@ -1873,7 +2112,7 @@ class _MoodHomePageState extends State<MoodHomePage>
       ),
       // Enhanced floating action buttons with better positioning
       floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: 16, right: 8),
+        padding: EdgeInsets.only(bottom: 20, right: 12),
         child: SlideTransition(
           position: Tween<Offset>(
             begin: const Offset(0, 2),
@@ -1890,7 +2129,7 @@ class _MoodHomePageState extends State<MoodHomePage>
             children: [
               // Quick mood entry button
               Container(
-                margin: EdgeInsets.only(bottom: 16),
+                margin: EdgeInsets.only(bottom: 20),
                 child: FloatingActionButton(
                   heroTag: "quick_mood",
                   onPressed: () async {
@@ -1929,10 +2168,21 @@ class _MoodHomePageState extends State<MoodHomePage>
                   },
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                  elevation: 6,
+                  elevation: 8,
                   child: Container(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(Icons.add_reaction_rounded, size: 28),
+                    padding: EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withOpacity(0.2),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                    child: Icon(Icons.add_reaction_rounded, size: 32),
                   ),
                   tooltip: 'Quick Mood Entry',
                 ),
@@ -1974,11 +2224,26 @@ class _MoodHomePageState extends State<MoodHomePage>
                     Theme.of(context).colorScheme.secondaryContainer,
                 foregroundColor:
                     Theme.of(context).colorScheme.onSecondaryContainer,
-                elevation: 4,
-                icon: Icon(Icons.flag_rounded),
+                elevation: 6,
+                icon: Container(
+                  padding: EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white.withOpacity(0.2),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Icon(Icons.flag_rounded),
+                ),
                 label: Text(
                   'Goals',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ],
