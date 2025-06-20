@@ -16,6 +16,7 @@ import 'profile_page.dart';
 import 'services/user_profile_service.dart';
 import 'services/theme_service.dart';
 import 'widgets/theme_toggle_widget.dart';
+import 'widgets/color_theme_button.dart';
 
 // Global navigator key
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -48,14 +49,13 @@ class MoodTrackerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<ThemeService>(
       builder: (context, themeService, child) {
-        return MaterialApp(
-          navigatorKey: navigatorKey,
-          title: 'MoodFlow - Daily Mood Tracker',
-          theme: ThemeData(
+        return AnimatedTheme(
+          duration: const Duration(milliseconds: 300),
+          data: ThemeData(
             useMaterial3: true,
             fontFamily: GoogleFonts.poppins().fontFamily,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF6750A4),
+              seedColor: themeService.seedColor,
               brightness: Brightness.light,
             ),
             appBarTheme: const AppBarTheme(
@@ -80,27 +80,60 @@ class MoodTrackerApp extends StatelessWidget {
               ),
             ),
           ),
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            fontFamily: GoogleFonts.poppins().fontFamily,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF6750A4),
-              brightness: Brightness.dark,
-            ),
-            appBarTheme: const AppBarTheme(
-              elevation: 0,
-              scrolledUnderElevation: 1,
-            ),
-            cardTheme: CardThemeData(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+          child: MaterialApp(
+            navigatorKey: navigatorKey,
+            title: 'MoodFlow - Daily Mood Tracker',
+            theme: ThemeData(
+              useMaterial3: true,
+              fontFamily: GoogleFonts.poppins().fontFamily,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: themeService.seedColor,
+                brightness: Brightness.light,
+              ),
+              appBarTheme: const AppBarTheme(
+                elevation: 0,
+                scrolledUnderElevation: 1,
+              ),
+              cardTheme: CardThemeData(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              filledButtonTheme: FilledButtonThemeData(
+                style: FilledButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
               ),
             ),
+            darkTheme: ThemeData(
+              useMaterial3: true,
+              fontFamily: GoogleFonts.poppins().fontFamily,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: themeService.seedColor,
+                brightness: Brightness.dark,
+              ),
+              appBarTheme: const AppBarTheme(
+                elevation: 0,
+                scrolledUnderElevation: 1,
+              ),
+              cardTheme: CardThemeData(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+            themeMode: themeService.themeMode,
+            home: AuthWrapper(),
+            debugShowCheckedModeBanner: false,
           ),
-          themeMode: themeService.themeMode,
-          home: AuthWrapper(),
-          debugShowCheckedModeBanner: false,
         );
       },
     );
@@ -2228,6 +2261,10 @@ class _MoodHomePageState extends State<MoodHomePage>
               ),
               Container(
                 margin: EdgeInsets.only(right: 8),
+                child: ColorThemeButton(),
+              ),
+              Container(
+                margin: EdgeInsets.only(right: 8),
                 child: ThemeToggleWidget(isCompact: true),
               ),
               Container(
@@ -2473,6 +2510,14 @@ class _MoodHomePageState extends State<MoodHomePage>
                     child: Icon(Icons.add_reaction_rounded, size: 32),
                   ),
                   tooltip: 'Quick Mood Entry',
+                ),
+              ),
+              // Color theme button
+              Container(
+                margin: EdgeInsets.only(bottom: 16),
+                child: ColorThemeButton(
+                  isFloating: true,
+                  tooltipMessage: 'Change color theme',
                 ),
               ),
               // Goals button
