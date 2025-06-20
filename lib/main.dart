@@ -873,23 +873,47 @@ class _MoodHomePageState extends State<MoodHomePage>
               const SizedBox(height: 20),
               LayoutBuilder(
                 builder: (context, constraints) {
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final isTablet = screenWidth > 600;
+                  final isLargeScreen = screenWidth > 900;
                   final isLandscape =
                       MediaQuery.of(context).orientation ==
                       Orientation.landscape;
+
+                  // Responsive grid configuration
+                  int crossAxisCount;
+                  double childAspectRatio;
+                  double spacing;
+
+                  if (isLargeScreen) {
+                    crossAxisCount = 8;
+                    childAspectRatio = 0.85;
+                    spacing = 16;
+                  } else if (isTablet) {
+                    crossAxisCount = isLandscape ? 8 : 6;
+                    childAspectRatio = isLandscape ? 0.75 : 0.8;
+                    spacing = 14;
+                  } else {
+                    crossAxisCount = isLandscape ? 6 : 4;
+                    childAspectRatio = isLandscape ? 0.7 : 0.85;
+                    spacing = isLandscape ? 10 : 12;
+                  }
 
                   return GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: isLandscape ? 6 : 4,
-                      crossAxisSpacing: isLandscape ? 8 : 12,
-                      mainAxisSpacing: isLandscape ? 8 : 12,
-                      childAspectRatio: isLandscape ? 0.8 : 0.9,
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: spacing,
+                      mainAxisSpacing: spacing,
+                      childAspectRatio: childAspectRatio,
                     ),
                     itemCount: moods.length,
                     itemBuilder: (context, index) {
                       final mood = moods[index];
                       final isSelected = selectedMood == mood['name'];
+                      final screenWidth = MediaQuery.of(context).size.width;
+                      final isCompact = screenWidth < 600;
 
                       return GestureDetector(
                         onTap:
@@ -933,7 +957,9 @@ class _MoodHomePageState extends State<MoodHomePage>
                                         Theme.of(context).colorScheme.surface,
                                       ],
                                     ),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(
+                              isCompact ? 16 : 20,
+                            ),
                             border:
                                 isSelected
                                     ? Border.all(
@@ -972,55 +998,49 @@ class _MoodHomePageState extends State<MoodHomePage>
                                       ),
                                     ],
                           ),
-                          child: Container(
-                            padding: EdgeInsets.all(isLandscape ? 6 : 10),
+                          child: Padding(
+                            padding: EdgeInsets.all(isCompact ? 8 : 10),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Emoji with pulse animation when selected
+                                // Responsive emoji sizing
                                 Flexible(
                                   flex: 3,
-                                  child: AnimatedContainer(
-                                    duration: Duration(milliseconds: 300),
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: AnimatedDefaultTextStyle(
-                                        duration: const Duration(
-                                          milliseconds: 300,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: AnimatedDefaultTextStyle(
+                                      duration: const Duration(
+                                        milliseconds: 300,
+                                      ),
+                                      style: TextStyle(
+                                        fontSize: _getResponsiveEmojiSize(
+                                          screenWidth,
+                                          isSelected,
                                         ),
-                                        style: TextStyle(
-                                          fontSize:
-                                              isLandscape
-                                                  ? (isSelected ? 28 : 24)
-                                                  : (isSelected ? 36 : 32),
-                                          shadows:
-                                              isSelected
-                                                  ? [
-                                                    Shadow(
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .primary
-                                                          .withOpacity(0.3),
-                                                      blurRadius: 8,
-                                                      offset: Offset(0, 2),
-                                                    ),
-                                                  ]
-                                                  : null,
-                                        ),
-                                        child: Text(
-                                          mood['emoji']!,
-                                          textAlign: TextAlign.center,
-                                        ),
+                                        shadows:
+                                            isSelected
+                                                ? [
+                                                  Shadow(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .primary
+                                                        .withOpacity(0.3),
+                                                    blurRadius: 8,
+                                                    offset: Offset(0, 2),
+                                                  ),
+                                                ]
+                                                : null,
+                                      ),
+                                      child: Text(
+                                        mood['emoji']!,
+                                        textAlign: TextAlign.center,
                                       ),
                                     ),
                                   ),
                                 ),
-
-                                // Spacing
-                                SizedBox(height: isLandscape ? 3 : 6),
-
-                                // Mood name with enhanced styling
+                                SizedBox(height: isCompact ? 4 : 6),
+                                // Responsive text sizing
                                 Flexible(
                                   flex: 2,
                                   child: FittedBox(
@@ -1028,7 +1048,9 @@ class _MoodHomePageState extends State<MoodHomePage>
                                     child: AnimatedDefaultTextStyle(
                                       duration: Duration(milliseconds: 300),
                                       style: GoogleFonts.poppins(
-                                        fontSize: isLandscape ? 11 : 13,
+                                        fontSize: _getResponsiveTextSize(
+                                          screenWidth,
+                                        ),
                                         fontWeight:
                                             isSelected
                                                 ? FontWeight.bold
@@ -1470,6 +1492,10 @@ class _MoodHomePageState extends State<MoodHomePage>
 
   Widget _buildWelcomeSection() {
     final hour = DateTime.now().hour;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final responsivePadding = _getResponsivePadding(screenWidth);
+
     String greeting;
     IconData greetingIcon;
     Color greetingColor;
@@ -1491,7 +1517,8 @@ class _MoodHomePageState extends State<MoodHomePage>
     return AnimatedContainer(
       duration: Duration(milliseconds: 600),
       width: double.infinity,
-      padding: EdgeInsets.all(24),
+      padding: EdgeInsets.all(responsivePadding),
+      margin: EdgeInsets.symmetric(horizontal: isTablet ? 0 : 0, vertical: 4),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -1502,18 +1529,18 @@ class _MoodHomePageState extends State<MoodHomePage>
             Theme.of(context).colorScheme.tertiaryContainer.withOpacity(0.8),
           ],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(isTablet ? 28 : 24),
         boxShadow: [
           BoxShadow(
             color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-            spreadRadius: 2,
+            blurRadius: isTablet ? 25 : 20,
+            offset: Offset(0, isTablet ? 10 : 8),
+            spreadRadius: isTablet ? 3 : 2,
           ),
           BoxShadow(
             color: Colors.white.withOpacity(0.1),
-            blurRadius: 8,
-            offset: Offset(0, -2),
+            blurRadius: isTablet ? 10 : 8,
+            offset: Offset(0, isTablet ? -3 : -2),
           ),
         ],
         border: Border.all(
@@ -1524,30 +1551,37 @@ class _MoodHomePageState extends State<MoodHomePage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          // Responsive header row
+          Flex(
+            direction: isTablet ? Axis.horizontal : Axis.horizontal,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               AnimatedContainer(
                 duration: Duration(milliseconds: 500),
-                padding: EdgeInsets.all(12),
+                padding: EdgeInsets.all(isTablet ? 14 : 12),
                 decoration: BoxDecoration(
                   color: greetingColor.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
                   boxShadow: [
                     BoxShadow(
                       color: greetingColor.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: Offset(0, 3),
+                      blurRadius: isTablet ? 10 : 8,
+                      offset: Offset(0, isTablet ? 4 : 3),
                     ),
                   ],
                 ),
-                child: Icon(greetingIcon, color: greetingColor, size: 32),
+                child: Icon(
+                  greetingIcon,
+                  color: greetingColor,
+                  size: isTablet ? 36 : 32,
+                ),
               ),
-              SizedBox(width: 16),
+              SizedBox(width: isTablet ? 20 : 16),
               Expanded(
                 child: AnimatedDefaultTextStyle(
                   duration: Duration(milliseconds: 300),
                   style: GoogleFonts.poppins(
-                    fontSize: 22,
+                    fontSize: isTablet ? 26 : 22,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onPrimaryContainer,
                     letterSpacing: 0.5,
@@ -1557,11 +1591,12 @@ class _MoodHomePageState extends State<MoodHomePage>
               ),
             ],
           ),
-          SizedBox(height: 16),
+          SizedBox(height: isTablet ? 20 : 16),
+          // Responsive description
           AnimatedDefaultTextStyle(
             duration: Duration(milliseconds: 300),
             style: GoogleFonts.poppins(
-              fontSize: 15,
+              fontSize: isTablet ? 17 : 15,
               color: Theme.of(
                 context,
               ).colorScheme.onPrimaryContainer.withOpacity(0.85),
@@ -1572,13 +1607,18 @@ class _MoodHomePageState extends State<MoodHomePage>
               'Ready to track your mood and connect with your inner self? Let\'s make today amazing!',
             ),
           ),
-          SizedBox(height: 20),
-          Row(
+          SizedBox(height: isTablet ? 24 : 20),
+          // Responsive stats row
+          Flex(
+            direction: isTablet ? Axis.horizontal : Axis.horizontal,
             children: [
               Expanded(
                 child: AnimatedContainer(
                   duration: Duration(milliseconds: 400),
-                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? 18 : 14,
+                    vertical: isTablet ? 12 : 10,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -1588,7 +1628,7 @@ class _MoodHomePageState extends State<MoodHomePage>
                         ).colorScheme.secondary.withOpacity(0.1),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
                     border: Border.all(
                       color: Theme.of(
                         context,
@@ -1601,15 +1641,15 @@ class _MoodHomePageState extends State<MoodHomePage>
                     children: [
                       Icon(
                         Icons.emoji_events_rounded,
-                        size: 18,
+                        size: isTablet ? 22 : 18,
                         color: Theme.of(context).colorScheme.primary,
                       ),
-                      SizedBox(width: 8),
+                      SizedBox(width: isTablet ? 10 : 8),
                       Flexible(
                         child: Text(
                           '${moodHistory.length} entries logged',
                           style: GoogleFonts.poppins(
-                            fontSize: 13,
+                            fontSize: isTablet ? 15 : 13,
                             fontWeight: FontWeight.w600,
                             color: Theme.of(context).colorScheme.primary,
                           ),
@@ -1619,24 +1659,24 @@ class _MoodHomePageState extends State<MoodHomePage>
                   ),
                 ),
               ),
-              SizedBox(width: 12),
+              SizedBox(width: isTablet ? 16 : 12),
               AnimatedContainer(
                 duration: Duration(milliseconds: 400),
-                padding: EdgeInsets.all(12),
+                padding: EdgeInsets.all(isTablet ? 14 : 12),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.red.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: Offset(0, 3),
+                      blurRadius: isTablet ? 10 : 8,
+                      offset: Offset(0, isTablet ? 4 : 3),
                     ),
                   ],
                 ),
                 child: Icon(
                   Icons.favorite_rounded,
-                  size: 18,
+                  size: isTablet ? 22 : 18,
                   color: Colors.red,
                 ),
               ),
@@ -1648,106 +1688,236 @@ class _MoodHomePageState extends State<MoodHomePage>
   }
 
   Widget _buildQuickActionsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildQuickActionCard(
-            'Quick Entry',
-            'Log mood fast',
-            Icons.add_reaction_rounded,
-            Theme.of(context).colorScheme.primary,
-            () async {
-              HapticFeedback.mediumImpact();
-              final result = await Navigator.push(
-                context,
-                PageRouteBuilder(
-                  pageBuilder:
-                      (context, animation, secondaryAnimation) =>
-                          QuickMoodEntry(),
-                  transitionsBuilder: (
-                    context,
-                    animation,
-                    secondaryAnimation,
-                    child,
-                  ) {
-                    return SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0.0, 1.0),
-                        end: Offset.zero,
-                      ).animate(
-                        CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeInOut,
-                        ),
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final spacing = isTablet ? 16.0 : 12.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // For large screens, we can use a more expanded layout
+        if (screenWidth > 900) {
+          return Row(
+            children: [
+              Expanded(
+                child: _buildQuickActionCard(
+                  'Quick Entry',
+                  'Log mood fast',
+                  Icons.add_reaction_rounded,
+                  Theme.of(context).colorScheme.primary,
+                  () async {
+                    HapticFeedback.mediumImpact();
+                    final result = await Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder:
+                            (context, animation, secondaryAnimation) =>
+                                QuickMoodEntry(),
+                        transitionsBuilder: (
+                          context,
+                          animation,
+                          secondaryAnimation,
+                          child,
+                        ) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.0, 1.0),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInOut,
+                              ),
+                            ),
+                            child: child,
+                          );
+                        },
+                        transitionDuration: const Duration(milliseconds: 300),
                       ),
-                      child: child,
                     );
-                  },
-                  transitionDuration: const Duration(milliseconds: 300),
-                ),
-              );
-              if (result == true) {
-                await _loadMoodHistory();
-              }
-            },
-          ),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: _buildQuickActionCard(
-            'Analytics',
-            'View insights',
-            Icons.analytics_rounded,
-            Theme.of(context).colorScheme.secondary,
-            () {
-              HapticFeedback.lightImpact();
-              Navigator.push(
-                context,
-                PageRouteBuilder(
-                  pageBuilder:
-                      (context, animation, secondaryAnimation) =>
-                          EnhancedAnalyticsPage(),
-                  transitionsBuilder: (
-                    context,
-                    animation,
-                    secondaryAnimation,
-                    child,
-                  ) {
-                    return SlideTransition(
-                      position: Tween<Offset>(
-                        begin: Offset(1.0, 0.0),
-                        end: Offset.zero,
-                      ).animate(
-                        CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeInOut,
-                        ),
-                      ),
-                      child: child,
-                    );
+                    if (result == true) {
+                      await _loadMoodHistory();
+                    }
                   },
                 ),
-              );
-            },
-          ),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: _buildQuickActionCard(
-            'Goals',
-            'Set targets',
-            Icons.flag_rounded,
-            Theme.of(context).colorScheme.tertiary,
-            () {
-              HapticFeedback.lightImpact();
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => GoalsPage()),
-              );
-            },
-          ),
-        ),
-      ],
+              ),
+              SizedBox(width: spacing),
+              Expanded(
+                child: _buildQuickActionCard(
+                  'Analytics',
+                  'View insights',
+                  Icons.analytics_rounded,
+                  Theme.of(context).colorScheme.secondary,
+                  () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder:
+                            (context, animation, secondaryAnimation) =>
+                                EnhancedAnalyticsPage(),
+                        transitionsBuilder: (
+                          context,
+                          animation,
+                          secondaryAnimation,
+                          child,
+                        ) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: Offset(1.0, 0.0),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInOut,
+                              ),
+                            ),
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(width: spacing),
+              Expanded(
+                child: _buildQuickActionCard(
+                  'Goals',
+                  'Set targets',
+                  Icons.flag_rounded,
+                  Theme.of(context).colorScheme.tertiary,
+                  () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => GoalsPage()),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(width: spacing),
+              Expanded(
+                child: _buildQuickActionCard(
+                  'Journal',
+                  'Write thoughts',
+                  Icons.book_rounded,
+                  Theme.of(context).colorScheme.tertiary,
+                  () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MoodJournal()),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        } else {
+          // Standard 3-column layout for tablets and phones
+          return Row(
+            children: [
+              Expanded(
+                child: _buildQuickActionCard(
+                  'Quick Entry',
+                  'Log mood fast',
+                  Icons.add_reaction_rounded,
+                  Theme.of(context).colorScheme.primary,
+                  () async {
+                    HapticFeedback.mediumImpact();
+                    final result = await Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder:
+                            (context, animation, secondaryAnimation) =>
+                                QuickMoodEntry(),
+                        transitionsBuilder: (
+                          context,
+                          animation,
+                          secondaryAnimation,
+                          child,
+                        ) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.0, 1.0),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInOut,
+                              ),
+                            ),
+                            child: child,
+                          );
+                        },
+                        transitionDuration: const Duration(milliseconds: 300),
+                      ),
+                    );
+                    if (result == true) {
+                      await _loadMoodHistory();
+                    }
+                  },
+                ),
+              ),
+              SizedBox(width: spacing),
+              Expanded(
+                child: _buildQuickActionCard(
+                  'Analytics',
+                  'View insights',
+                  Icons.analytics_rounded,
+                  Theme.of(context).colorScheme.secondary,
+                  () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder:
+                            (context, animation, secondaryAnimation) =>
+                                EnhancedAnalyticsPage(),
+                        transitionsBuilder: (
+                          context,
+                          animation,
+                          secondaryAnimation,
+                          child,
+                        ) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: Offset(1.0, 0.0),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInOut,
+                              ),
+                            ),
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(width: spacing),
+              Expanded(
+                child: _buildQuickActionCard(
+                  'Goals',
+                  'Set targets',
+                  Icons.flag_rounded,
+                  Theme.of(context).colorScheme.tertiary,
+                  () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => GoalsPage()),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        }
+      },
     );
   }
 
@@ -1758,39 +1928,80 @@ class _MoodHomePageState extends State<MoodHomePage>
     Color color,
     VoidCallback onTap,
   ) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final isLargeScreen = screenWidth > 900;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: Duration(milliseconds: 300),
         curve: Curves.easeInOutBack,
-        padding: EdgeInsets.all(18),
+        padding: EdgeInsets.all(
+          isLargeScreen
+              ? 22
+              : isTablet
+              ? 20
+              : 18,
+        ),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [color.withOpacity(0.15), color.withOpacity(0.08)],
+            colors: [
+              color.withOpacity(isLargeScreen ? 0.18 : 0.15),
+              color.withOpacity(0.08),
+            ],
           ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+          borderRadius: BorderRadius.circular(
+            isLargeScreen
+                ? 24
+                : isTablet
+                ? 22
+                : 20,
+          ),
+          border: Border.all(
+            color: color.withOpacity(0.3),
+            width: isTablet ? 1.5 : 1.5,
+          ),
           boxShadow: [
             BoxShadow(
               color: color.withOpacity(0.2),
-              blurRadius: 12,
-              offset: Offset(0, 4),
+              blurRadius:
+                  isLargeScreen
+                      ? 16
+                      : isTablet
+                      ? 14
+                      : 12,
+              offset: Offset(
+                0,
+                isLargeScreen
+                    ? 6
+                    : isTablet
+                    ? 5
+                    : 4,
+              ),
               spreadRadius: 1,
             ),
             BoxShadow(
               color: Colors.white.withOpacity(0.1),
-              blurRadius: 6,
+              blurRadius: isTablet ? 8 : 6,
               offset: Offset(0, -2),
             ),
           ],
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             AnimatedContainer(
               duration: Duration(milliseconds: 300),
-              padding: EdgeInsets.all(14),
+              padding: EdgeInsets.all(
+                isLargeScreen
+                    ? 16
+                    : isTablet
+                    ? 15
+                    : 14,
+              ),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [color.withOpacity(0.3), color.withOpacity(0.2)],
@@ -1799,38 +2010,112 @@ class _MoodHomePageState extends State<MoodHomePage>
                 boxShadow: [
                   BoxShadow(
                     color: color.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: Offset(0, 3),
+                    blurRadius: isTablet ? 10 : 8,
+                    offset: Offset(0, isTablet ? 4 : 3),
                   ),
                 ],
               ),
-              child: Icon(icon, color: color, size: 28),
+              child: Icon(
+                icon,
+                color: color,
+                size:
+                    isLargeScreen
+                        ? 32
+                        : isTablet
+                        ? 30
+                        : 28,
+              ),
             ),
-            SizedBox(height: 12),
+            SizedBox(
+              height:
+                  isLargeScreen
+                      ? 16
+                      : isTablet
+                      ? 14
+                      : 12,
+            ),
             Text(
               title,
               style: GoogleFonts.poppins(
-                fontSize: 14,
+                fontSize:
+                    isLargeScreen
+                        ? 16
+                        : isTablet
+                        ? 15
+                        : 14,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
                 letterSpacing: 0.3,
               ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 4),
+            SizedBox(height: isTablet ? 6 : 4),
             Text(
               subtitle,
               style: GoogleFonts.poppins(
-                fontSize: 11,
+                fontSize:
+                    isLargeScreen
+                        ? 13
+                        : isTablet
+                        ? 12
+                        : 11,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
       ),
     );
+  }
+
+  // Helper methods for responsive design
+  double _getResponsiveEmojiSize(double screenWidth, bool isSelected) {
+    if (screenWidth > 900) {
+      return isSelected ? 42 : 38;
+    } else if (screenWidth > 600) {
+      return isSelected ? 36 : 32;
+    } else {
+      return isSelected ? 32 : 28;
+    }
+  }
+
+  double _getResponsiveTextSize(double screenWidth) {
+    if (screenWidth > 900) {
+      return 14;
+    } else if (screenWidth > 600) {
+      return 13;
+    } else {
+      return 12;
+    }
+  }
+
+  double _getResponsivePadding(double screenWidth) {
+    if (screenWidth > 900) {
+      return 32;
+    } else if (screenWidth > 600) {
+      return 28;
+    } else {
+      return 24;
+    }
+  }
+
+  double _getResponsiveHorizontalPadding() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 1200) {
+      return 32;
+    } else if (screenWidth > 900) {
+      return 24;
+    } else if (screenWidth > 600) {
+      return 20;
+    } else {
+      return 16;
+    }
   }
 
   @override
@@ -2063,7 +2348,10 @@ class _MoodHomePageState extends State<MoodHomePage>
             ],
           ),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            padding: EdgeInsets.symmetric(
+              horizontal: _getResponsiveHorizontalPadding(),
+              vertical: 16,
+            ),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 // Welcome Section
