@@ -45,6 +45,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>GOOGLE_CLIENT_ID</key>
+	<string>631111437135-2d8044eqftkl17cut2ofhbc0t1g6p8pe.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -52,7 +54,7 @@
 			<string>google</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>631111437135-7qpnbn8g86r44rj8s2nhai7jth30gm10.apps.googleusercontent.com</string>
+				<string>631111437135-2d8044eqftkl17cut2ofhbc0t1g6p8pe.apps.googleusercontent.com</string>
 			</array>
 		</dict>
 	</array>

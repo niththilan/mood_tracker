@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Google Sign-In Configuration -->
-    <string name="default_web_client_id">631111437135-rmre7e09akna4ln09ha33vnvnmee9gu9.apps.googleusercontent.com</string>
-    <string name="default_android_client_id">631111437135-tcgtegjv0lhkeu2b9etg5gebil1869km.apps.googleusercontent.com</string>
-    
-    <!-- App Name -->
-    <string name="app_name">MoodFlow</string>
+    <string name="default_web_client_id">631111437135-l2a14dgadurrj360mbom28saane8fngu.apps.googleusercontent.com</string>
+    <string name="google_android_client_id">631111437135-1hsnu14039cna6pkm0g7vue1vh71freq.apps.googleusercontent.com</string>
 </resources>
