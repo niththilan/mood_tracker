@@ -937,7 +937,9 @@ class _MoodHomePageState extends State<MoodHomePage>
   Widget _buildMoodSelectionCard() {
     return Card(
       elevation: 8,
-      shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+      shadowColor: Theme.of(
+        context,
+      ).colorScheme.primary.withValues(alpha: 0.15),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
@@ -946,8 +948,12 @@ class _MoodHomePageState extends State<MoodHomePage>
             end: Alignment.bottomRight,
             colors: [
               Theme.of(context).colorScheme.surface,
-              Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.1),
-              Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              Theme.of(
+                context,
+              ).colorScheme.primaryContainer.withValues(alpha: 0.1),
+              Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             ],
           ),
           border: Border.all(
@@ -1339,9 +1345,8 @@ class _MoodHomePageState extends State<MoodHomePage>
                     end: Alignment.bottomRight,
                     colors: [
                       Theme.of(context).colorScheme.surface,
-                      Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      Theme.of(context).colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.3),
                     ],
                   ),
                   boxShadow: [
@@ -1647,13 +1652,17 @@ class _MoodHomePageState extends State<MoodHomePage>
           colors: [
             Theme.of(context).colorScheme.primaryContainer,
             Theme.of(context).colorScheme.secondaryContainer,
-            Theme.of(context).colorScheme.tertiaryContainer.withValues(alpha: 0.8),
+            Theme.of(
+              context,
+            ).colorScheme.tertiaryContainer.withValues(alpha: 0.8),
           ],
         ),
         borderRadius: BorderRadius.circular(isTablet ? 28 : 24),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.15),
             blurRadius: isTablet ? 25 : 20,
             offset: Offset(0, isTablet ? 10 : 8),
             spreadRadius: isTablet ? 3 : 2,
@@ -1748,7 +1757,9 @@ class _MoodHomePageState extends State<MoodHomePage>
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                        Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.2),
                         Theme.of(
                           context,
                         ).colorScheme.secondary.withValues(alpha: 0.1),
@@ -2130,7 +2141,10 @@ class _MoodHomePageState extends State<MoodHomePage>
               ),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.2)],
+                  colors: [
+                    color.withValues(alpha: 0.3),
+                    color.withValues(alpha: 0.2),
+                  ],
                 ),
                 shape: BoxShape.circle,
                 boxShadow: [
@@ -2376,7 +2390,8 @@ class _MoodHomePageState extends State<MoodHomePage>
                   icon: Container(
                     padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
