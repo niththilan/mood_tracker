@@ -46,8 +46,13 @@
           client_id: '631111437135-rmre7e09akna4ln09ha33vnvnmee9gu9.apps.googleusercontent.com',
           callback: function(response) {
             console.log('Google Identity Services callback:', response);
-          }
+            // This callback will be handled by the Flutter app
+          },
+          auto_select: false,
+          cancel_on_tap_outside: true
         });
+      } else {
+        console.warn('Google Identity Services not loaded');
       }
     });
   </script>

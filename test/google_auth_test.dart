@@ -10,10 +10,36 @@ void main() {
       expect(SupabaseConfig.googleAndroidClientId, isNotEmpty);
       expect(SupabaseConfig.googleIOSClientId, isNotEmpty);
 
+      // Verify specific client IDs match your provided values
+      expect(
+        SupabaseConfig.googleWebClientId,
+        equals(
+          '631111437135-rmre7e09akna4ln09ha33vnvnmee9gu9.apps.googleusercontent.com',
+        ),
+      );
+      expect(
+        SupabaseConfig.googleAndroidClientId,
+        equals(
+          '631111437135-tcgtegjv0lhkeu2b9etg5gebil1869km.apps.googleusercontent.com',
+        ),
+      );
+      expect(
+        SupabaseConfig.googleIOSClientId,
+        equals(
+          '631111437135-7qpnbn8g86r44rj8s2nhai7jth30gm10.apps.googleusercontent.com',
+        ),
+      );
+
       // Verify web client ID format
       expect(
         SupabaseConfig.googleWebClientId,
         contains('apps.googleusercontent.com'),
+      );
+
+      // Verify callback URL
+      expect(
+        SupabaseConfig.oauthCallbackUrl,
+        equals('https://xxasezacvotitccxnpaa.supabase.co/auth/v1/callback'),
       );
     });
 
@@ -25,6 +51,22 @@ void main() {
     test('isSignedIn should return boolean without errors', () async {
       final result = await GoogleAuthService.isSignedIn();
       expect(result, isA<bool>());
+    });
+
+    test('Client IDs should have correct format', () {
+      final webClientId = SupabaseConfig.googleWebClientId;
+      final androidClientId = SupabaseConfig.googleAndroidClientId;
+      final iosClientId = SupabaseConfig.googleIOSClientId;
+
+      // All should start with the same project number
+      expect(webClientId.startsWith('631111437135-'), isTrue);
+      expect(androidClientId.startsWith('631111437135-'), isTrue);
+      expect(iosClientId.startsWith('631111437135-'), isTrue);
+
+      // All should end with .apps.googleusercontent.com
+      expect(webClientId.endsWith('.apps.googleusercontent.com'), isTrue);
+      expect(androidClientId.endsWith('.apps.googleusercontent.com'), isTrue);
+      expect(iosClientId.endsWith('.apps.googleusercontent.com'), isTrue);
     });
   });
 }

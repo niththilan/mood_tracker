@@ -5,18 +5,34 @@ import 'supabase_config.dart';
 
 class GoogleAuthService {
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: kIsWeb ? SupabaseConfig.googleWebClientId : null,
+    clientId: _getClientId(),
     scopes: ['email', 'profile'],
     // Note: serverClientId is not supported on web
   );
+
+  /// Get the appropriate client ID for the current platform
+  static String? _getClientId() {
+    if (kIsWeb) {
+      return SupabaseConfig.googleWebClientId;
+    } else {
+      // For mobile platforms, return null to use the configured client ID
+      // from platform-specific configurations (strings.xml for Android, Info.plist for iOS)
+      return null;
+    }
+  }
 
   static final SupabaseClient _supabase = Supabase.instance.client;
 
   /// Sign in with Google using appropriate flow for platform
   static Future<AuthResponse?> signInWithGoogle() async {
     try {
-      print('Starting Google Sign-In...');
-      print('Running on web: $kIsWeb');
+      print('=== Starting Google Sign-In ===');
+      print('Platform: ${kIsWeb ? 'Web' : 'Mobile'}');
+      print(
+        'Client ID: ${_getClientId() ?? 'Platform-specific (from config files)'}',
+      );
+      print('Supabase URL: ${SupabaseConfig.supabaseUrl}');
+      print('OAuth Callback URL: ${SupabaseConfig.oauthCallbackUrl}');
 
       // For web, use improved web configuration
       if (kIsWeb) {
@@ -26,7 +42,10 @@ class GoogleAuthService {
       // For mobile, use standard Google Sign-In
       return await _signInWithGoogleMobile();
     } catch (error) {
-      print('Google Sign-In Error: $error');
+      print('=== Google Sign-In Error ===');
+      print('Error type: ${error.runtimeType}');
+      print('Error message: $error');
+      print('=== End Error ===');
       throw Exception(_getErrorMessage(error));
     }
   }
@@ -34,6 +53,7 @@ class GoogleAuthService {
   /// Improved Web Google Sign-In flow
   static Future<AuthResponse?> _signInWithGoogleWeb() async {
     print('Using improved web Google Sign-In flow...');
+    print('Web Client ID: ${SupabaseConfig.googleWebClientId}');
 
     try {
       // Try silent sign-in first (for returning users)
