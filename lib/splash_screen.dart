@@ -75,9 +75,9 @@ class _SplashScreenState extends State<SplashScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              theme.colorScheme.primaryContainer.withOpacity(0.3),
+              theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
               theme.colorScheme.surface,
-              theme.colorScheme.secondaryContainer.withOpacity(0.3),
+              theme.colorScheme.secondaryContainer.withValues(alpha: 0.3),
             ],
           ),
         ),
@@ -148,7 +148,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: SizedBox(
                       width: 120,
                       child: LinearProgressIndicator(
-                        backgroundColor: theme.colorScheme.surfaceVariant,
+                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
                         valueColor: AlwaysStoppedAnimation<Color>(
                           theme.colorScheme.primary,
                         ),

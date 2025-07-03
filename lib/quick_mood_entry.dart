@@ -258,7 +258,7 @@ class _QuickMoodEntryState extends State<QuickMoodEntry>
                     end: Alignment.bottomRight,
                     colors: [
                       Theme.of(context).colorScheme.surface,
-                      Theme.of(context).colorScheme.surfaceVariant,
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
                     ],
                   ),
         ),
@@ -279,8 +279,8 @@ class _QuickMoodEntryState extends State<QuickMoodEntry>
                       style: IconButton.styleFrom(
                         backgroundColor:
                             selectedMood != null
-                                ? Colors.white.withOpacity(0.2)
-                                : Theme.of(context).colorScheme.surfaceVariant,
+                                ? Colors.white.withValues(alpha: 0.2)
+                                : Theme.of(context).colorScheme.surfaceContainerHighest,
                       ),
                     ),
                     Expanded(
@@ -416,14 +416,14 @@ class _QuickMoodEntryState extends State<QuickMoodEntry>
                               colors: mood['gradient'],
                             )
                             : null,
-                    color: isSelected ? null : Colors.white.withOpacity(0.9),
+                    color: isSelected ? null : Colors.white.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
                         color:
                             isSelected
-                                ? mood['color'].withOpacity(0.4)
-                                : Colors.black.withOpacity(0.1),
+                                ? mood['color'].withValues(alpha: 0.4)
+                                : Colors.black.withValues(alpha: 0.1),
                         blurRadius: isSelected ? 20 : 10,
                         offset: Offset(0, isSelected ? 8 : 4),
                       ),
@@ -455,7 +455,7 @@ class _QuickMoodEntryState extends State<QuickMoodEntry>
                             fontSize: 11,
                             color:
                                 isSelected
-                                    ? Colors.white.withOpacity(0.9)
+                                    ? Colors.white.withValues(alpha: 0.9)
                                     : Colors.black54,
                           ),
                           textAlign: TextAlign.center,
@@ -485,11 +485,11 @@ class _QuickMoodEntryState extends State<QuickMoodEntry>
             child: Container(
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: Offset(0, 4),
                   ),
@@ -571,11 +571,11 @@ class _QuickMoodEntryState extends State<QuickMoodEntry>
             child: Container(
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: Offset(0, 4),
                   ),
@@ -622,7 +622,7 @@ class _QuickMoodEntryState extends State<QuickMoodEntry>
                                 .firstWhere(
                                   (m) => m['name'] == selectedMood,
                                 )['color']
-                                .withOpacity(0.2),
+                                .withValues(alpha: 0.2),
                             checkmarkColor:
                                 enhancedMoods.firstWhere(
                                   (m) => m['name'] == selectedMood,
@@ -650,11 +650,11 @@ class _QuickMoodEntryState extends State<QuickMoodEntry>
             child: Container(
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: Offset(0, 4),
                   ),

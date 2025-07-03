@@ -246,7 +246,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                             padding: EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color:
-                                  Theme.of(context).colorScheme.surfaceVariant,
+                                  Theme.of(context).colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Center(
@@ -304,7 +304,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                     backgroundColor:
                                         Theme.of(
                                           context,
-                                        ).colorScheme.surfaceVariant,
+                                        ).colorScheme.surfaceContainerHighest,
                                     valueColor: AlwaysStoppedAnimation<Color>(
                                       _getMoodColor(entry.key),
                                     ),
@@ -389,7 +389,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                                 ).colorScheme.primaryContainer
                                                 : Theme.of(
                                                   context,
-                                                ).colorScheme.surfaceVariant,
+                                                ).colorScheme.surfaceContainerHighest,
                                         shape: BoxShape.circle,
                                       ),
                                       child: Center(

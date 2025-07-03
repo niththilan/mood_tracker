@@ -286,10 +286,10 @@ class _MoodJournalState extends State<MoodJournal>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [moodColor.withOpacity(0.05), moodColor.withOpacity(0.02)],
+          colors: [moodColor.withValues(alpha: 0.05), moodColor.withValues(alpha: 0.02)],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: moodColor.withOpacity(0.2), width: 1),
+        border: Border.all(color: moodColor.withValues(alpha: 0.2), width: 1),
       ),
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -301,7 +301,7 @@ class _MoodJournalState extends State<MoodJournal>
                 Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: moodColor.withOpacity(0.1),
+                    color: moodColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -339,7 +339,7 @@ class _MoodJournalState extends State<MoodJournal>
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -391,7 +391,7 @@ class _FilterHeaderDelegate extends SliverPersistentHeaderDelegate {
                 borderSide: BorderSide.none,
               ),
               filled: true,
-              fillColor: Theme.of(context).colorScheme.surfaceVariant,
+              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               isDense: true,
             ),

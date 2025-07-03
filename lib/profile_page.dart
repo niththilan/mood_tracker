@@ -362,7 +362,7 @@ class _ProfilePageState extends State<ProfilePage>
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: _hexToColor(_selectedColor).withOpacity(0.3),
+              color: _hexToColor(_selectedColor).withValues(alpha: 0.3),
               blurRadius: 20,
               spreadRadius: 5,
             ),
@@ -384,7 +384,7 @@ class _ProfilePageState extends State<ProfilePage>
             _nameController.text.isNotEmpty
                 ? [
                   BoxShadow(
-                    color: Colors.green.withOpacity(0.2),
+                    color: Colors.green.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -441,7 +441,7 @@ class _ProfilePageState extends State<ProfilePage>
             _ageController.text.isNotEmpty
                 ? [
                   BoxShadow(
-                    color: Colors.green.withOpacity(0.2),
+                    color: Colors.green.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -600,7 +600,7 @@ class _ProfilePageState extends State<ProfilePage>
                     color:
                         isSelected
                             ? Theme.of(context).colorScheme.primaryContainer
-                            : Theme.of(context).colorScheme.surfaceVariant,
+                            : Theme.of(context).colorScheme.surfaceContainerHighest,
                     shape: BoxShape.circle,
                     border:
                         isSelected
@@ -615,7 +615,7 @@ class _ProfilePageState extends State<ProfilePage>
                               BoxShadow(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.primary.withOpacity(0.3),
+                                ).colorScheme.primary.withValues(alpha: 0.3),
                                 blurRadius: 8,
                                 offset: Offset(0, 2),
                               ),
@@ -675,7 +675,7 @@ class _ProfilePageState extends State<ProfilePage>
                           isSelected
                               ? [
                                 BoxShadow(
-                                  color: _hexToColor(color).withOpacity(0.5),
+                                  color: _hexToColor(color).withValues(alpha: 0.5),
                                   blurRadius: 8,
                                   offset: Offset(0, 2),
                                 ),
@@ -898,10 +898,10 @@ class _ProfilePageState extends State<ProfilePage>
               decoration: BoxDecoration(
                 color: Theme.of(
                   context,
-                ).colorScheme.surfaceVariant.withOpacity(0.3),
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
               child: Column(
@@ -959,7 +959,7 @@ class _ProfilePageState extends State<ProfilePage>
         decoration: BoxDecoration(
           color:
               isSelected
-                  ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
                   : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(

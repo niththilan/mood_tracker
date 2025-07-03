@@ -114,7 +114,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       child: Text(
                         'Skip',
                         style: GoogleFonts.poppins(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
@@ -147,7 +147,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               width: 150,
                               height: 150,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
@@ -183,7 +183,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                 _pages[index].description,
                                 style: GoogleFonts.poppins(
                                   fontSize: 16,
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                   height: 1.5,
                                 ),
                                 textAlign: TextAlign.center,
@@ -216,7 +216,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             color:
                                 _currentPage == index
                                     ? Colors.white
-                                    : Colors.white.withOpacity(0.4),
+                                    : Colors.white.withValues(alpha: 0.4),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),

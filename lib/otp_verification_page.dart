@@ -189,7 +189,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage>
           color:
               _controllers[index].text.isNotEmpty
                   ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
           width: _controllers[index].text.isNotEmpty ? 2 : 1,
         ),
         borderRadius: BorderRadius.circular(12),
@@ -197,7 +197,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage>
             _controllers[index].text.isNotEmpty
                 ? Theme.of(
                   context,
-                ).colorScheme.primaryContainer.withOpacity(0.1)
+                ).colorScheme.primaryContainer.withValues(alpha: 0.1)
                 : Theme.of(context).colorScheme.surface,
       ),
       child: TextField(
@@ -297,7 +297,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage>
                       gradient: LinearGradient(
                         colors: [
                           theme.colorScheme.primary,
-                          theme.colorScheme.primary.withOpacity(0.7),
+                          theme.colorScheme.primary.withValues(alpha: 0.7),
                         ],
                       ),
                       shape: BoxShape.circle,
@@ -327,7 +327,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage>
                         ? 'Code verified! Now create your new password.'
                         : 'We\'ve sent a 6-digit verification code to\n${widget.email}',
                     style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                       height: 1.5,
                     ),
                     textAlign: TextAlign.center,
@@ -374,7 +374,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage>
                             borderRadius: BorderRadius.circular(12),
                           ),
                           disabledBackgroundColor: theme.colorScheme.primary
-                              .withOpacity(0.5),
+                              .withValues(alpha: 0.5),
                         ),
                         child:
                             _isLoading
@@ -407,7 +407,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage>
                         Text(
                           'Didn\'t receive the code? ',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                         TextButton(
@@ -440,7 +440,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage>
                             _obscureNewPassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           onPressed: () {
                             setState(() {
@@ -454,7 +454,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage>
                         filled: true,
                         fillColor:
                             isDark
-                                ? Colors.grey[900]?.withOpacity(0.5)
+                                ? Colors.grey[900]?.withValues(alpha: 0.5)
                                 : Colors.white,
                       ),
                       validator: _validatePassword,
@@ -478,7 +478,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage>
                             _obscureConfirmPassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           onPressed: () {
                             setState(() {
@@ -493,7 +493,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage>
                         filled: true,
                         fillColor:
                             isDark
-                                ? Colors.grey[900]?.withOpacity(0.5)
+                                ? Colors.grey[900]?.withValues(alpha: 0.5)
                                 : Colors.white,
                       ),
                       validator: _validateConfirmPassword,
@@ -515,7 +515,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage>
                             borderRadius: BorderRadius.circular(12),
                           ),
                           disabledBackgroundColor: theme.colorScheme.primary
-                              .withOpacity(0.5),
+                              .withValues(alpha: 0.5),
                         ),
                         child:
                             _isLoading
@@ -547,7 +547,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage>
                     child: Text(
                       'The code expires in 10 minutes',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ),

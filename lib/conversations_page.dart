@@ -179,7 +179,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
             size: 80,
             color: Theme.of(
               context,
-            ).colorScheme.onSurfaceVariant.withOpacity(0.5),
+            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
           ),
           SizedBox(height: 24),
           Text(
@@ -197,7 +197,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
               fontSize: 16,
               color: Theme.of(
                 context,
-              ).colorScheme.onSurfaceVariant.withOpacity(0.7),
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
             ),
             textAlign: TextAlign.center,
           ),
@@ -255,7 +255,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
                           gradient: LinearGradient(
                             colors: [
                               _hexToColor(otherUser.colorHex),
-                              _hexToColor(otherUser.colorHex).withOpacity(0.7),
+                              _hexToColor(otherUser.colorHex).withValues(alpha: 0.7),
                             ],
                           ),
                         ),
@@ -279,7 +279,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
                           fontSize: 14,
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                         ),
                       ),
                       trailing: Icon(
@@ -287,7 +287,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
                         size: 16,
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurfaceVariant.withOpacity(0.5),
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                       ),
                       onTap: () {
                         HapticFeedback.lightImpact();
@@ -322,7 +322,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),

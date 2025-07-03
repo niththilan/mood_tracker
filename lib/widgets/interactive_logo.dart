@@ -136,12 +136,12 @@ class _InteractiveLogoState extends State<InteractiveLogo>
                         gradient: RadialGradient(
                           colors: [
                             colorScheme.primaryContainer,
-                            colorScheme.primary.withOpacity(0.8),
+                            colorScheme.primary.withValues(alpha: 0.8),
                           ],
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: colorScheme.primary.withOpacity(0.3),
+                            color: colorScheme.primary.withValues(alpha: 0.3),
                             blurRadius: 12,
                             spreadRadius: 2,
                           ),
@@ -179,7 +179,7 @@ class _InteractiveLogoState extends State<InteractiveLogo>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: colorScheme.primary.withOpacity(0.5),
+                          color: colorScheme.primary.withValues(alpha: 0.5),
                           width: 2,
                         ),
                       ),
@@ -236,7 +236,7 @@ class MoodRingPainter extends CustomPainter {
       // Add small glow effect
       final glowPaint =
           Paint()
-            ..color = (moodEmojis[i]['color'] as Color).withOpacity(0.3)
+            ..color = (moodEmojis[i]['color'] as Color).withValues(alpha: 0.3)
             ..style = PaintingStyle.fill;
 
       canvas.drawCircle(Offset(x, y), 12, glowPaint);
@@ -273,7 +273,7 @@ class StaticLogo extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-          colors: [background, primary.withOpacity(0.8)],
+          colors: [background, primary.withValues(alpha: 0.8)],
         ),
       ),
       child: Stack(

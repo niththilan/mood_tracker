@@ -86,7 +86,7 @@ class _ColorThemeButtonState extends State<ColorThemeButton>
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Colors.white.withOpacity(0.2),
+                          Colors.white.withValues(alpha: 0.2),
                           Colors.transparent,
                         ],
                       ),
@@ -107,10 +107,10 @@ class _ColorThemeButtonState extends State<ColorThemeButton>
             child: Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: themeService.seedColor.withOpacity(0.1),
+                color: themeService.seedColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: themeService.seedColor.withOpacity(0.3),
+                  color: themeService.seedColor.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),

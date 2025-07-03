@@ -292,7 +292,7 @@ class _EnhancedAnalyticsPageState extends State<EnhancedAnalyticsPage>
                                       ? Theme.of(context).colorScheme.primary
                                       : Theme.of(
                                         context,
-                                      ).colorScheme.surfaceVariant,
+                                      ).colorScheme.surfaceContainerHighest,
                               foregroundColor:
                                   isSelected
                                       ? Theme.of(context).colorScheme.onPrimary
@@ -364,7 +364,7 @@ class _EnhancedAnalyticsPageState extends State<EnhancedAnalyticsPage>
             Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color),
@@ -586,7 +586,7 @@ class _EnhancedAnalyticsPageState extends State<EnhancedAnalyticsPage>
                             show: true,
                             color: Theme.of(
                               context,
-                            ).colorScheme.primary.withOpacity(0.1),
+                            ).colorScheme.primary.withValues(alpha: 0.1),
                           ),
                         ),
                       ],
@@ -651,9 +651,9 @@ class _EnhancedAnalyticsPageState extends State<EnhancedAnalyticsPage>
             Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: insightColor.withOpacity(0.1),
+                color: insightColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: insightColor.withOpacity(0.2)),
+                border: Border.all(color: insightColor.withValues(alpha: 0.2)),
               ),
               child: Text(insight, style: TextStyle(fontSize: 14, height: 1.5)),
             ),

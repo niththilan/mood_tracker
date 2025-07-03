@@ -629,9 +629,9 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  Theme.of(context).colorScheme.secondary.withOpacity(0.1),
-                  Theme.of(context).colorScheme.tertiary.withOpacity(0.05),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+                  Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.05),
                 ],
                 stops: const [0.0, 0.7, 1.0],
               ),
@@ -667,7 +667,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
           scale: _isLoading ? _pulseAnimation.value : 1.0,
           child: Card(
             elevation: _isLoading ? 16 : 12,
-            shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+            shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(28),
             ),
@@ -679,7 +679,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                   end: Alignment.bottomRight,
                   colors: [
                     Theme.of(context).colorScheme.surface,
-                    Theme.of(context).colorScheme.surface.withOpacity(0.9),
+                    Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
                   ],
                 ),
               ),
@@ -734,7 +734,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                       BoxShadow(
                         color: Theme.of(
                           context,
-                        ).colorScheme.primary.withOpacity(0.3),
+                        ).colorScheme.primary.withValues(alpha: 0.3),
                         blurRadius: 20,
                         spreadRadius: 2,
                       ),
@@ -769,7 +769,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                                   decoration: BoxDecoration(
                                     color: Theme.of(
                                       context,
-                                    ).colorScheme.primary.withOpacity(0.6),
+                                    ).colorScheme.primary.withValues(alpha: 0.6),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -826,10 +826,10 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
           decoration: BoxDecoration(
             color: Theme.of(
               context,
-            ).colorScheme.surfaceVariant.withOpacity(0.5),
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
             ),
           ),
           child: Stack(
@@ -848,7 +848,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                     gradient: LinearGradient(
                       colors: [
                         Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -856,7 +856,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                       BoxShadow(
                         color: Theme.of(
                           context,
-                        ).colorScheme.primary.withOpacity(0.3),
+                        ).colorScheme.primary.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -951,7 +951,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                 _emailValid
                     ? [
                       BoxShadow(
-                        color: Colors.green.withOpacity(0.2),
+                        color: Colors.green.withValues(alpha: 0.2),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -1024,7 +1024,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                       _nameValid
                           ? [
                             BoxShadow(
-                              color: Colors.green.withOpacity(0.2),
+                              color: Colors.green.withValues(alpha: 0.2),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -1102,7 +1102,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                       _ageValid
                           ? [
                             BoxShadow(
-                              color: Colors.green.withOpacity(0.2),
+                              color: Colors.green.withValues(alpha: 0.2),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -1275,7 +1275,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                 _passwordValid
                     ? [
                       BoxShadow(
-                        color: Colors.green.withOpacity(0.2),
+                        color: Colors.green.withValues(alpha: 0.2),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -1431,7 +1431,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: strength['value'],
-          backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           valueColor: AlwaysStoppedAnimation<Color>(strength['color']),
         ),
       ],
@@ -1467,14 +1467,14 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                   gradient: LinearGradient(
                     colors: [
                       Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
                     ],
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withOpacity(0.3),
+                      ).colorScheme.primary.withValues(alpha: 0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -1553,7 +1553,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
               child: Divider(
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                 thickness: 1,
               ),
             ),
@@ -1571,7 +1571,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
               child: Divider(
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                 thickness: 1,
               ),
             ),
@@ -1587,7 +1587,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
               width: 1.5,
             ),
             gradient: LinearGradient(
@@ -1597,7 +1597,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -1688,7 +1688,7 @@ class ParticlePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint =
         Paint()
-          ..color = Colors.blue.withOpacity(0.1)
+          ..color = Colors.blue.withValues(alpha: 0.1)
           ..style = PaintingStyle.fill;
 
     // Generate floating particles
@@ -1705,7 +1705,7 @@ class ParticlePainter extends CustomPainter {
       canvas.drawCircle(
         Offset(x, y),
         radius,
-        paint..color = _getParticleColor(i).withOpacity(0.6),
+        paint..color = _getParticleColor(i).withValues(alpha: 0.6),
       );
     }
   }

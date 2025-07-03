@@ -79,13 +79,13 @@ class _ColorThemePickerState extends State<ColorThemePicker>
                         border: Border.all(
                           color: Theme.of(
                             context,
-                          ).colorScheme.outline.withOpacity(0.2),
+                          ).colorScheme.outline.withValues(alpha: 0.2),
                         ),
                         boxShadow: [
                           BoxShadow(
                             color: Theme.of(
                               context,
-                            ).colorScheme.shadow.withOpacity(0.1),
+                            ).colorScheme.shadow.withValues(alpha: 0.1),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -123,7 +123,7 @@ class _ColorThemePickerState extends State<ColorThemePicker>
                             size: 16,
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.6),
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ],
                       ),
@@ -244,7 +244,7 @@ class _ColorThemeModalState extends State<_ColorThemeModal>
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).colorScheme.shadow.withOpacity(0.2),
+              color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.2),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
@@ -258,7 +258,7 @@ class _ColorThemeModalState extends State<_ColorThemeModal>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -281,7 +281,7 @@ class _ColorThemeModalState extends State<_ColorThemeModal>
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.7),
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -418,27 +418,27 @@ class _ColorThemeItemState extends State<_ColorThemeItem>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               decoration: BoxDecoration(
-                color: widget.color.withOpacity(0.1),
+                color: widget.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color:
                       widget.isSelected
                           ? widget.color
-                          : widget.color.withOpacity(0.3),
+                          : widget.color.withValues(alpha: 0.3),
                   width: widget.isSelected ? 3 : 1,
                 ),
                 boxShadow:
                     widget.isSelected
                         ? [
                           BoxShadow(
-                            color: widget.color.withOpacity(0.3),
+                            color: widget.color.withValues(alpha: 0.3),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
                         ]
                         : [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -455,7 +455,7 @@ class _ColorThemeItemState extends State<_ColorThemeItem>
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: widget.color.withOpacity(0.4),
+                          color: widget.color.withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),

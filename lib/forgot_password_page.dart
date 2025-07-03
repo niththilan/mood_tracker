@@ -134,7 +134,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                           gradient: LinearGradient(
                             colors: [
                               theme.colorScheme.primary,
-                              theme.colorScheme.primary.withOpacity(0.7),
+                              theme.colorScheme.primary.withValues(alpha: 0.7),
                             ],
                           ),
                           shape: BoxShape.circle,
@@ -165,7 +165,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                           ? 'We\'ve sent a password reset link to ${_emailController.text}. Click the link in your email to reset your password.'
                           : 'Don\'t worry! Enter your email address and we\'ll send you a link to reset your password.',
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         height: 1.5,
                       ),
                       textAlign: TextAlign.center,
@@ -195,7 +195,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: theme.colorScheme.outline.withOpacity(0.5),
+                              color: theme.colorScheme.outline.withValues(alpha: 0.5),
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
@@ -208,7 +208,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                           filled: true,
                           fillColor:
                               isDark
-                                  ? Colors.grey[900]?.withOpacity(0.5)
+                                  ? Colors.grey[900]?.withValues(alpha: 0.5)
                                   : Colors.white,
                         ),
                         validator: (value) {
@@ -240,7 +240,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                               borderRadius: BorderRadius.circular(12),
                             ),
                             disabledBackgroundColor: theme.colorScheme.primary
-                                .withOpacity(0.5),
+                                .withValues(alpha: 0.5),
                           ),
                           child:
                               _isLoading
@@ -325,7 +325,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                       child: Text(
                         'Having trouble? Contact support',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ),
