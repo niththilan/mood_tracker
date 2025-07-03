@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "projectId": "mood-tracker-web",
+  "builds": [
+    {
+      "source": "web",
+      "destination": "/",
+      "target": "web"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "**",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "**/*.@(js|css|woff2)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}

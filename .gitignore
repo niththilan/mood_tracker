@@ -1,0 +1,89 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Additional build and cache directories
+/android/app/build/
+/android/build/
+/ios/build/
+/build/
+/.dart_tool/
+**/build/
+**/.dart_tool/
+
+# Large binary files and cache
+*.dill
+*.track.dill
+kernel_blob.bin
+*.so
+*.framework
+*.xcarchive
+*.ipa
+*.apk
+*.aab
+
+# Git LFS tracking (for future large files)
+*.zip
+*.tar.gz
+*.dmg
+*.pkg
+
+# IDE and OS specific
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.vscode/.ropeproject
+*~
+.DS_Store
+Thumbs.db
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+log/
+logs/
+temp/
+tmp/
