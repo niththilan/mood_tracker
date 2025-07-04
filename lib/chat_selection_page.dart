@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'chat_page.dart';
 import 'conversations_page.dart';
+import 'friends_list_page.dart';
 
 class ChatSelectionPage extends StatelessWidget {
   const ChatSelectionPage({Key? key}) : super(key: key);
@@ -69,6 +70,28 @@ class ChatSelectionPage extends StatelessWidget {
                           icon: Icons.groups_rounded,
                           color: Theme.of(context).colorScheme.primary,
                           onTap: () => _openCommunityChat(context),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 20),
+
+                  // Friends Option
+                  AnimationConfiguration.staggeredList(
+                    position: 1,
+                    duration: Duration(milliseconds: 375),
+                    child: SlideAnimation(
+                      verticalOffset: 50.0,
+                      child: FadeInAnimation(
+                        child: _buildChatOption(
+                          context: context,
+                          title: 'Friends',
+                          subtitle:
+                              'Manage friends, send requests, and see their moods',
+                          icon: Icons.people_rounded,
+                          color: Theme.of(context).colorScheme.tertiary,
+                          onTap: () => _openFriends(context),
                         ),
                       ),
                     ),
@@ -202,6 +225,26 @@ class ChatSelectionPage extends StatelessWidget {
       PageRouteBuilder(
         pageBuilder:
             (context, animation, secondaryAnimation) => ConversationsPage(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+            ),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
+  void _openFriends(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder:
+            (context, animation, secondaryAnimation) => FriendsListPage(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return SlideTransition(
             position: Tween<Offset>(

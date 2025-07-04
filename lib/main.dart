@@ -13,6 +13,8 @@ import 'goals_page.dart';
 import 'auth_page.dart';
 import 'onboarding_screen.dart';
 import 'chat_selection_page.dart';
+import 'friends_list_page.dart';
+import 'user_search_page.dart';
 import 'quick_mood_entry.dart';
 import 'mood_journal.dart';
 import 'profile_page.dart';
@@ -2352,6 +2354,53 @@ class _MoodHomePageState extends State<MoodHomePage>
                         pageBuilder:
                             (context, animation, secondaryAnimation) =>
                                 ChatSelectionPage(),
+                        transitionsBuilder: (
+                          context,
+                          animation,
+                          secondaryAnimation,
+                          child,
+                        ) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: Offset(1.0, 0.0),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInOut,
+                              ),
+                            ),
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Container(
+                margin: EdgeInsets.only(right: 8),
+                child: IconButton(
+                  icon: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.people_outline,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                  ),
+                  tooltip: 'Friends',
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder:
+                            (context, animation, secondaryAnimation) =>
+                                FriendsListPage(),
                         transitionsBuilder: (
                           context,
                           animation,
