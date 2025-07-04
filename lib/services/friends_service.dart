@@ -123,8 +123,8 @@ class FriendsService {
               .single();
 
       await _supabase.from('friendships').insert({
-        'user1_id': request['sender_id'], 
-        'user2_id': request['receiver_id']
+        'user1_id': request['sender_id'],
+        'user2_id': request['receiver_id'],
       });
     }
   }
@@ -188,21 +188,23 @@ class FriendsService {
     List<Friendship> friendships = [];
     for (var json in response) {
       // Determine which user is the friend (not the current user)
-      String friendId = json['user1_id'] == userId ? json['user2_id'] : json['user1_id'];
-      
+      String friendId =
+          json['user1_id'] == userId ? json['user2_id'] : json['user1_id'];
+
       // Get the friend's profile
-      final profileResponse = await _supabase
-          .from('user_profiles')
-          .select('id, name, avatar_emoji, color')
-          .eq('id', friendId)
-          .maybeSingle();
+      final profileResponse =
+          await _supabase
+              .from('user_profiles')
+              .select('id, name, avatar_emoji, color')
+              .eq('id', friendId)
+              .maybeSingle();
 
       // Create friendship object with friend profile
       final friendshipData = Map<String, dynamic>.from(json);
       if (profileResponse != null) {
         friendshipData['friend_profile'] = profileResponse;
       }
-      
+
       friendships.add(Friendship.fromJson(friendshipData));
     }
 
@@ -227,7 +229,9 @@ class FriendsService {
         await _supabase
             .from('friendships')
             .select('id')
-            .or('and(user1_id.eq.$userId1,user2_id.eq.$userId2),and(user1_id.eq.$userId2,user2_id.eq.$userId1)')
+            .or(
+              'and(user1_id.eq.$userId1,user2_id.eq.$userId2),and(user1_id.eq.$userId2,user2_id.eq.$userId1)',
+            )
             .maybeSingle();
 
     return response != null;
