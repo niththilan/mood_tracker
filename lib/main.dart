@@ -14,7 +14,6 @@ import 'auth_page.dart';
 import 'onboarding_screen.dart';
 import 'chat_selection_page.dart';
 import 'friends_list_page.dart';
-import 'user_search_page.dart';
 import 'quick_mood_entry.dart';
 import 'mood_journal.dart';
 import 'profile_page.dart';

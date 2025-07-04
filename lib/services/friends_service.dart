@@ -122,10 +122,10 @@ class FriendsService {
               .eq('id', requestId)
               .single();
 
-      await _supabase.from('friendships').insert([
-        {'user_id': request['sender_id'], 'friend_id': request['receiver_id']},
-        {'user_id': request['receiver_id'], 'friend_id': request['sender_id']},
-      ]);
+      await _supabase.from('friendships').insert({
+        'user1_id': request['sender_id'], 
+        'user2_id': request['receiver_id']
+      });
     }
   }
 
@@ -144,8 +144,8 @@ class FriendsService {
         .from('friend_requests')
         .select('''
           *,
-          sender_profile:sender_id(id, name, avatar_emoji, color),
-          receiver_profile:receiver_id(id, name, avatar_emoji, color)
+          sender_profile:user_profiles!sender_id(id, name, avatar_emoji, color),
+          receiver_profile:user_profiles!receiver_id(id, name, avatar_emoji, color)
         ''')
         .eq('receiver_id', userId)
         .eq('status', 'pending')
@@ -162,8 +162,8 @@ class FriendsService {
         .from('friend_requests')
         .select('''
           *,
-          sender_profile:sender_id(id, name, avatar_emoji, color),
-          receiver_profile:receiver_id(id, name, avatar_emoji, color)
+          sender_profile:user_profiles!sender_id(id, name, avatar_emoji, color),
+          receiver_profile:user_profiles!receiver_id(id, name, avatar_emoji, color)
         ''')
         .eq('sender_id', userId)
         .neq('status', 'cancelled')
@@ -177,16 +177,36 @@ class FriendsService {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return [];
 
+    // Get friendships where current user is either user1 or user2
     final response = await _supabase
         .from('friendships')
-        .select('''
-          *,
-          friend_profile:friend_id(id, name, avatar_emoji, color)
-        ''')
-        .eq('user_id', userId)
+        .select('*')
+        .or('user1_id.eq.$userId,user2_id.eq.$userId')
         .order('created_at', ascending: false);
 
-    return response.map((json) => Friendship.fromJson(json)).toList();
+    // Process the results to get the friend's profile for each friendship
+    List<Friendship> friendships = [];
+    for (var json in response) {
+      // Determine which user is the friend (not the current user)
+      String friendId = json['user1_id'] == userId ? json['user2_id'] : json['user1_id'];
+      
+      // Get the friend's profile
+      final profileResponse = await _supabase
+          .from('user_profiles')
+          .select('id, name, avatar_emoji, color')
+          .eq('id', friendId)
+          .maybeSingle();
+
+      // Create friendship object with friend profile
+      final friendshipData = Map<String, dynamic>.from(json);
+      if (profileResponse != null) {
+        friendshipData['friend_profile'] = profileResponse;
+      }
+      
+      friendships.add(Friendship.fromJson(friendshipData));
+    }
+
+    return friendships;
   }
 
   Future<void> removeFriend(String friendId) async {
@@ -198,7 +218,7 @@ class FriendsService {
         .from('friendships')
         .delete()
         .or(
-          'and(user_id.eq.$userId,friend_id.eq.$friendId),and(user_id.eq.$friendId,friend_id.eq.$userId)',
+          'and(user1_id.eq.$userId,user2_id.eq.$friendId),and(user1_id.eq.$friendId,user2_id.eq.$userId)',
         );
   }
 
@@ -207,8 +227,7 @@ class FriendsService {
         await _supabase
             .from('friendships')
             .select('id')
-            .eq('user_id', userId1)
-            .eq('friend_id', userId2)
+            .or('and(user1_id.eq.$userId1,user2_id.eq.$userId2),and(user1_id.eq.$userId2,user2_id.eq.$userId1)')
             .maybeSingle();
 
     return response != null;
@@ -220,7 +239,7 @@ class FriendsService {
     if (userId == null) return [];
 
     final response = await _supabase
-        .from('profiles')
+        .from('user_profiles')
         .select('id, name, avatar_emoji, color')
         .ilike('name', '%$query%')
         .neq('id', userId) // Exclude current user
@@ -293,7 +312,7 @@ class FriendsService {
         .from('friend_activity_feed')
         .select('''
           *,
-          friend_profile:friend_id(id, name, avatar_emoji, color)
+          friend_profile:user_profiles!friend_id(id, name, avatar_emoji, color)
         ''')
         .eq('for_user_id', userId)
         .order('created_at', ascending: false)
@@ -310,7 +329,7 @@ class FriendsService {
     // Get basic profile
     final profileResponse =
         await _supabase
-            .from('profiles')
+            .from('user_profiles')
             .select('id, name, avatar_emoji, color')
             .eq('id', userId)
             .maybeSingle();
