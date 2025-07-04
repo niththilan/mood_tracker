@@ -4,11 +4,14 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'supabase_config.dart';
 
 class GoogleAuthService {
-  static final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: _getClientId(),
-    scopes: ['email', 'profile'],
-    // Note: serverClientId is not supported on web
-  );
+  // Only initialize GoogleSignIn for mobile platforms
+  static final GoogleSignIn? _googleSignIn =
+      kIsWeb
+          ? null
+          : GoogleSignIn(
+            scopes: ['email', 'profile'],
+            // Use platform-specific client IDs from configuration files
+          );
 
   /// Get the appropriate client ID for the current platform
   static String? _getClientId() {
@@ -34,9 +37,9 @@ class GoogleAuthService {
       print('Supabase URL: ${SupabaseConfig.supabaseUrl}');
       print('OAuth Callback URL: ${SupabaseConfig.oauthCallbackUrl}');
 
-      // For web, use improved web configuration
+      // For web, use Supabase OAuth flow to avoid redirect_uri_mismatch
       if (kIsWeb) {
-        return await _signInWithGoogleWeb();
+        return await _signInWithSupabaseOAuth();
       }
 
       // For mobile, use standard Google Sign-In
@@ -50,86 +53,18 @@ class GoogleAuthService {
     }
   }
 
-  /// Improved Web Google Sign-In flow
-  static Future<AuthResponse?> _signInWithGoogleWeb() async {
-    print('Using improved web Google Sign-In flow...');
-    print('Web Client ID: ${SupabaseConfig.googleWebClientId}');
-
-    try {
-      // Try silent sign-in first (for returning users)
-      print('Attempting silent sign-in...');
-      GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
-
-      if (googleUser == null) {
-        // If silent sign-in fails, proceed with interactive sign-in
-        print('Silent sign-in failed, starting interactive sign-in...');
-        googleUser = await _googleSignIn.signIn();
-      }
-
-      if (googleUser == null) {
-        print('User cancelled the sign-in');
-        return null;
-      }
-
-      print('Google user obtained: ${googleUser.email}');
-
-      // Get authentication credentials
-      print('Getting authentication details...');
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      print('ID Token available: ${googleAuth.idToken != null}');
-      print('Access Token available: ${googleAuth.accessToken != null}');
-
-      // Validate that we have the required tokens
-      if (googleAuth.idToken == null) {
-        print('No ID token received, falling back to Supabase OAuth...');
-        return await _signInWithSupabaseOAuth();
-      }
-
-      // Sign in to Supabase with Google credentials
-      print('Signing in to Supabase with Google credentials...');
-      final AuthResponse response = await _supabase.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: googleAuth.idToken!,
-        accessToken: googleAuth.accessToken,
-      );
-
-      print('Supabase authentication successful');
-      return response;
-    } catch (error) {
-      print('Web Google Sign-In error: $error');
-
-      // Handle specific error cases
-      final errorString = error.toString().toLowerCase();
-
-      if (errorString.contains('popup_closed') ||
-          errorString.contains('user_cancelled') ||
-          errorString.contains('cancelled')) {
-        print('User cancelled sign-in');
-        return null;
-      }
-
-      // For other errors, try Supabase OAuth as fallback
-      if (errorString.contains('network') ||
-          errorString.contains('timeout') ||
-          errorString.contains('unknown_reason')) {
-        print('Trying Supabase OAuth as fallback...');
-        return await _signInWithSupabaseOAuth();
-      }
-
-      throw error;
-    }
-  }
-
   /// Mobile Google Sign-In flow
   static Future<AuthResponse?> _signInWithGoogleMobile() async {
     print('Using mobile Google Sign-In flow...');
 
+    if (_googleSignIn == null) {
+      throw Exception('Google Sign-In not available on this platform');
+    }
+
     try {
       // Start Google Sign-In
       print('Initiating Google Sign-In...');
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn!.signIn();
 
       if (googleUser == null) {
         print('User cancelled the sign-in');
@@ -169,14 +104,16 @@ class GoogleAuthService {
   /// Supabase OAuth flow (fallback for web)
   static Future<AuthResponse?> _signInWithSupabaseOAuth() async {
     print('Using Supabase OAuth flow...');
+    print('Using Supabase callback URL to avoid redirect_uri_mismatch');
 
     try {
+      // Always use Supabase callback URL for web to match Google Cloud Console configuration
+      final redirectUrl = SupabaseConfig.oauthCallbackUrl;
+      print('Redirect URL: $redirectUrl');
+
       final bool success = await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo:
-            kIsWeb
-                ? '${Uri.base.origin}/auth/callback'
-                : SupabaseConfig.oauthCallbackUrl,
+        redirectTo: redirectUrl,
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
 
@@ -184,17 +121,31 @@ class GoogleAuthService {
         print('Supabase OAuth authentication initiated');
 
         // Wait a bit for the redirect to complete
-        await Future.delayed(Duration(milliseconds: 500));
+        await Future.delayed(Duration(milliseconds: 1000));
 
         final User? user = _supabase.auth.currentUser;
         if (user != null) {
+          print('User authenticated successfully: ${user.email}');
           return AuthResponse(
             user: user,
             session: _supabase.auth.currentSession,
           );
+        } else {
+          print('Waiting for authentication to complete...');
+          // Try waiting a bit longer for the callback
+          await Future.delayed(Duration(milliseconds: 2000));
+          final User? delayedUser = _supabase.auth.currentUser;
+          if (delayedUser != null) {
+            print('User authenticated after delay: ${delayedUser.email}');
+            return AuthResponse(
+              user: delayedUser,
+              session: _supabase.auth.currentSession,
+            );
+          }
         }
       }
 
+      print('OAuth authentication failed or user cancelled');
       return null;
     } catch (error) {
       print('Supabase OAuth error: $error');
@@ -229,11 +180,11 @@ class GoogleAuthService {
   /// Sign out from both Google and Supabase
   static Future<void> signOut() async {
     try {
-      // Sign out from Google
-      if (await _googleSignIn.isSignedIn()) {
-        await _googleSignIn.signOut();
+      // Sign out from Google (only on mobile)
+      if (_googleSignIn != null && await _googleSignIn!.isSignedIn()) {
+        await _googleSignIn!.signOut();
         if (kIsWeb) {
-          await _googleSignIn.disconnect(); // Clear cached credentials on web
+          await _googleSignIn!.disconnect(); // Clear cached credentials on web
         }
       }
 
@@ -250,7 +201,8 @@ class GoogleAuthService {
   /// Check if user is currently signed in with Google
   static Future<bool> isSignedIn() async {
     try {
-      final isGoogleSignedIn = await _googleSignIn.isSignedIn();
+      final isGoogleSignedIn =
+          _googleSignIn != null && await _googleSignIn!.isSignedIn();
       final isSupabaseSignedIn = _supabase.auth.currentUser != null;
 
       return isGoogleSignedIn || isSupabaseSignedIn;
@@ -262,15 +214,18 @@ class GoogleAuthService {
 
   /// Get current Google user
   static GoogleSignInAccount? getCurrentUser() {
-    return _googleSignIn.currentUser;
+    return _googleSignIn?.currentUser;
   }
 
   /// Initialize Google Sign-In for web (call this early in app lifecycle)
   static Future<void> initializeForWeb() async {
     if (kIsWeb) {
+      // On web, we don't use GoogleSignIn package, so no initialization needed
+      print('Web platform detected - using Supabase OAuth flow only');
+    } else if (_googleSignIn != null) {
       try {
-        await _googleSignIn.signInSilently();
-        print('Google Sign-In initialized for web');
+        await _googleSignIn!.signInSilently();
+        print('Google Sign-In initialized for mobile');
       } catch (error) {
         print(
           'Silent sign-in failed (expected if user not previously signed in): $error',

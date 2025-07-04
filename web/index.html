@@ -33,30 +33,6 @@
   <!-- PWA Configuration -->
   <meta name="theme-color" content="#2196F3">
 
-  <!-- Google Sign-In SDK for Web -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <meta name="google-signin-client_id" content="631111437135-l2a14dgadurrj360mbom28saane8fngu.apps.googleusercontent.com">
-  
-  <!-- Google Identity Services configuration -->
-  <script>
-    window.addEventListener('DOMContentLoaded', function() {
-      // Initialize Google Identity Services
-      if (window.google && window.google.accounts) {
-        google.accounts.id.initialize({
-          client_id: '631111437135-l2a14dgadurrj360mbom28saane8fngu.apps.googleusercontent.com',
-          callback: function(response) {
-            console.log('Google Identity Services callback:', response);
-            // This callback will be handled by the Flutter app
-          },
-          auto_select: false,
-          cancel_on_tap_outside: true
-        });
-      } else {
-        console.warn('Google Identity Services not loaded');
-      }
-    });
-  </script>
-
   <title>MoodFlow - Mood Tracker</title>
   <link rel="manifest" href="manifest.json">
 
