@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -14,7 +15,7 @@ class FriendsListPage extends StatefulWidget {
 }
 
 class _FriendsListPageState extends State<FriendsListPage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final FriendsService _friendsService = FriendsService();
   final PageController _pageController = PageController();
 
@@ -33,9 +34,16 @@ class _FriendsListPageState extends State<FriendsListPage>
   int _currentIndex = 0;
   String? _currentUserId;
 
+  // Auto-refresh timer
+  Timer? _autoRefreshTimer;
+  static const Duration _refreshInterval = Duration(seconds: 30);
+
   @override
   void initState() {
     super.initState();
+
+    // Add lifecycle observer
+    WidgetsBinding.instance.addObserver(this);
 
     // Initialize animation controllers
     _headerAnimationController = AnimationController(
@@ -80,6 +88,66 @@ class _FriendsListPageState extends State<FriendsListPage>
     // Start animations
     _headerAnimationController.forward();
     _fabAnimationController.forward();
+
+    // Start auto-refresh timer
+    _startAutoRefresh();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App is in foreground, start auto-refresh
+        _startAutoRefresh();
+        // Also do an immediate refresh when returning to foreground
+        if (mounted && !_isLoading) {
+          _loadDataSilently();
+        }
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        // App is in background, stop auto-refresh to save battery
+        _stopAutoRefresh();
+        break;
+    }
+  }
+
+  void _startAutoRefresh() {
+    _autoRefreshTimer?.cancel(); // Cancel any existing timer
+    _autoRefreshTimer = Timer.periodic(_refreshInterval, (timer) {
+      if (mounted && !_isLoading) {
+        _loadDataSilently(); // Load data without showing loading indicator
+      }
+    });
+  }
+
+  void _stopAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = null;
+  }
+
+  // Silent refresh that doesn't show loading indicator
+  Future<void> _loadDataSilently() async {
+    try {
+      final friends = await _friendsService.getFriends();
+      final pendingRequests = await _friendsService.getPendingFriendRequests();
+      final sentRequests = await _friendsService.getSentFriendRequests();
+
+      if (mounted) {
+        setState(() {
+          _friends = friends;
+          _pendingRequests = pendingRequests;
+          _sentRequests = sentRequests;
+        });
+      }
+    } catch (e) {
+      // Silently handle errors for background refresh
+      debugPrint('Auto-refresh error: $e');
+    }
   }
 
   void _setupStreamListeners() {
@@ -221,41 +289,22 @@ class _FriendsListPageState extends State<FriendsListPage>
         return Transform.translate(
           offset: Offset(0, _headerSlideAnimation.value),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Friends',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Connect and share your journey',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                Text(
+                  'Friends',
+                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: IconButton(
-                    onPressed: () => _loadData(),
-                    icon: const Icon(Icons.refresh_rounded),
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                const SizedBox(height: 4),
+                Text(
+                  'Connect and share your journey',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -1091,6 +1140,8 @@ class _FriendsListPageState extends State<FriendsListPage>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Remove lifecycle observer
+    _stopAutoRefresh(); // Stop the auto-refresh timer
     _headerAnimationController.dispose();
     _fabAnimationController.dispose();
     _listAnimationController.dispose();
