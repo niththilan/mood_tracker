@@ -110,7 +110,7 @@ class ChatSelectionPage extends StatelessWidget {
                           context: context,
                           title: 'Private Messages',
                           subtitle:
-                              'Have personal conversations with individuals',
+                              'Have personal conversations with your friends',
                           icon: Icons.message_rounded,
                           color: Theme.of(context).colorScheme.secondary,
                           onTap: () => _openPrivateMessages(context),

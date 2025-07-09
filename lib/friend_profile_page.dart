@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/friends_models.dart';
+import '../models/chat_models.dart';
 import '../services/friends_service.dart';
+import '../services/chat_service.dart';
+import '../chat_page.dart';
 
 class FriendProfilePage extends StatefulWidget {
   final String userId;
@@ -72,17 +75,38 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         children: [
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () {
-                // Navigate to chat
-                Navigator.pushNamed(
-                  context,
-                  '/chat',
-                  arguments: {
-                    'conversationId': null,
-                    'otherUserId': widget.userId,
-                    'otherUserName': _profile!.name,
-                  },
-                );
+              onPressed: () async {
+                try {
+                  // Import and use chat service
+                  final chatService = ChatService();
+                  final conversationId = await chatService
+                      .createOrGetConversation(widget.userId);
+
+                  if (conversationId != null && mounted) {
+                    chatService.setCurrentConversation(conversationId);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder:
+                            (context) => ChatPage(
+                              isPrivateChat: true,
+                              conversationId: conversationId,
+                              otherUser: UserProfile(
+                                id: widget.userId,
+                                name: _profile!.name,
+                                avatarEmoji: _profile!.avatarEmoji,
+                                colorHex: _profile!.colorHex,
+                              ),
+                            ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error starting chat: $e')),
+                    );
+                  }
+                }
               },
               icon: const Icon(Icons.chat),
               label: const Text('Chat'),

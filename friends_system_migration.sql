@@ -513,4 +513,48 @@ GRANT EXECUTE ON FUNCTION public.are_users_friends(UUID, UUID) TO authenticated;
 -- =============================================================================
 -- MIGRATION COMPLETE
 -- =============================================================================
+
+-- =============================================================================
+-- ADDITIONAL SECURITY POLICIES FOR PRIVATE MESSAGING
+-- =============================================================================
+-- The application now enforces friends-only private messaging at the service layer.
+-- Add these policies to your existing chat tables for database-level security:
+
+-- 1. Policy for private_conversations table (if it exists)
+-- CREATE POLICY "private_conversations_friends_only" ON private_conversations
+-- FOR ALL USING (
+--   -- User must be a participant in the conversation
+--   (auth.uid() = participant_1_id OR auth.uid() = participant_2_id)
+--   AND
+--   -- Both participants must be friends
+--   EXISTS (
+--     SELECT 1 FROM friendships f 
+--     WHERE (f.user1_id = participant_1_id AND f.user2_id = participant_2_id)
+--        OR (f.user1_id = participant_2_id AND f.user2_id = participant_1_id)
+--   )
+-- );
+
+-- 2. Policy for private_messages table (if it exists)
+-- DROP POLICY IF EXISTS "private_messages_friends_only" ON private_messages;
+-- CREATE POLICY "private_messages_friends_only" ON private_messages
+-- FOR ALL USING (
+--   -- User must be involved in the conversation (sender or participant)
+--   EXISTS (
+--     SELECT 1 FROM private_conversations pc
+--     WHERE pc.id = conversation_id
+--     AND (pc.participant_1_id = auth.uid() OR pc.participant_2_id = auth.uid())
+--     AND EXISTS (
+--       SELECT 1 FROM friendships f 
+--       WHERE (f.user1_id = pc.participant_1_id AND f.user2_id = pc.participant_2_id)
+--          OR (f.user1_id = pc.participant_2_id AND f.user2_id = pc.participant_1_id)
+--     )
+--   )
+-- );
+
+-- These policies ensure that:
+-- 1. Users can only access conversations they're part of
+-- 2. Both participants must be friends
+-- 3. Users can read messages they send AND receive
+-- =============================================================================
+
 SELECT 'Friends system migration completed successfully!' as status;

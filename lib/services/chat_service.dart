@@ -1,9 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 import '../models/chat_models.dart';
+import 'friends_service.dart';
 
 class ChatService {
   final SupabaseClient _supabase = Supabase.instance.client;
+  final FriendsService _friendsService = FriendsService();
 
   // Stream controllers for real-time messages
   final StreamController<List<Map<String, dynamic>>> _publicMessagesController =
@@ -247,11 +249,46 @@ class ChatService {
     }
   }
 
+  // Get only friends for starting new conversations (friends-only private messaging)
+  Future<List<UserProfile>> getFriendsForChat() async {
+    try {
+      final currentUserId = _supabase.auth.currentUser?.id;
+      if (currentUserId == null) return [];
+
+      // Get friends using the friends service
+      final friendships = await _friendsService.getFriends();
+
+      // Extract friend profiles from friendships
+      List<UserProfile> friends = [];
+      for (var friendship in friendships) {
+        if (friendship.friendProfile != null) {
+          friends.add(friendship.friendProfile!);
+        }
+      }
+
+      return friends;
+    } catch (e) {
+      print('Error fetching friends for chat: $e');
+      return [];
+    }
+  }
+
   // Create or get existing private conversation
   Future<String?> createOrGetConversation(String otherUserId) async {
     try {
       final currentUserId = _supabase.auth.currentUser?.id;
       if (currentUserId == null) return null;
+
+      // Check if users are friends before allowing private conversation
+      final areFriends = await _friendsService.areFriends(
+        currentUserId,
+        otherUserId,
+      );
+      if (!areFriends) {
+        throw Exception(
+          'You can only send private messages to friends. Add them as a friend first!',
+        );
+      }
 
       // Ensure participant IDs are ordered consistently
       final participant1 =

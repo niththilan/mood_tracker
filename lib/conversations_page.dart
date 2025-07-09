@@ -16,6 +16,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
   final ChatService _chatService = ChatService();
   List<PrivateConversation> conversations = [];
   List<UserProfile> allUsers = [];
+  List<UserProfile> friends = [];
   bool isLoading = true;
   StreamSubscription? _conversationsSubscription;
 
@@ -49,7 +50,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
 
     // Load initial data
     await _loadConversations();
-    await _loadAllUsers();
+    await _loadFriends();
   }
 
   Future<void> _loadConversations() async {
@@ -60,10 +61,10 @@ class _ConversationsPageState extends State<ConversationsPage> {
     });
   }
 
-  Future<void> _loadAllUsers() async {
-    final usersData = await _chatService.getAllUsers();
+  Future<void> _loadFriends() async {
+    final friendsData = await _chatService.getFriendsForChat();
     setState(() {
-      allUsers = usersData;
+      friends = friendsData;
     });
   }
 
@@ -255,7 +256,9 @@ class _ConversationsPageState extends State<ConversationsPage> {
                           gradient: LinearGradient(
                             colors: [
                               _hexToColor(otherUser.colorHex),
-                              _hexToColor(otherUser.colorHex).withValues(alpha: 0.7),
+                              _hexToColor(
+                                otherUser.colorHex,
+                              ).withValues(alpha: 0.7),
                             ],
                           ),
                         ),
@@ -328,7 +331,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
                 ),
                 SizedBox(height: 16),
                 Text(
-                  'Start New Conversation',
+                  'Start New Conversation with Friends',
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -337,12 +340,40 @@ class _ConversationsPageState extends State<ConversationsPage> {
                 SizedBox(height: 16),
                 Expanded(
                   child:
-                      allUsers.isEmpty
-                          ? Center(child: Text('No users available'))
+                      friends.isEmpty
+                          ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.people_outline,
+                                  size: 64,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'No friends available',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Add friends to start private conversations',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          )
                           : ListView.builder(
-                            itemCount: allUsers.length,
+                            itemCount: friends.length,
                             itemBuilder: (context, index) {
-                              final user = allUsers[index];
+                              final user = friends[index];
                               return ListTile(
                                 leading: Container(
                                   width: 40,

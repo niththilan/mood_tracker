@@ -401,6 +401,28 @@ class FriendsService {
     );
   }
 
+  // Get list of friend IDs for current user (for fast friend verification)
+  Future<Set<String>> getFriendIds() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return {};
+
+    final response = await _supabase
+        .from('friendships')
+        .select('user1_id, user2_id')
+        .or('user1_id.eq.$userId,user2_id.eq.$userId');
+
+    Set<String> friendIds = {};
+    for (var friendship in response) {
+      String friendId =
+          friendship['user1_id'] == userId
+              ? friendship['user2_id']
+              : friendship['user1_id'];
+      friendIds.add(friendId);
+    }
+
+    return friendIds;
+  }
+
   // Load methods for real-time updates
   Future<void> _loadFriendRequests() async {
     try {
