@@ -1,9 +1,115 @@
 -- =============================================================================
--- FRIENDS SYSTEM MIGRATION FOR MOOD TRACKER APPLICATION
+-- COMPLETE FRIENDS SYSTEM MIGRATION FOR MOOD TRACKER APPLICATION
 -- =============================================================================
 -- This migration adds friend request and friendship functionality to the 
 -- existing mood tracker application with proper privacy controls and mood sharing.
+-- Includes all necessary dependencies and chat system integration.
 -- =============================================================================
+
+-- Enable necessary extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- =============================================================================
+-- PREREQUISITE: ENSURE CORE TABLES EXIST
+-- =============================================================================
+
+-- 1. User profiles table (if not exists)
+CREATE TABLE IF NOT EXISTS public.user_profiles (
+    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+    name TEXT NOT NULL CHECK (length(name) >= 2 AND length(name) <= 50),
+    avatar_emoji TEXT DEFAULT '😊',
+    color TEXT DEFAULT '#4CAF50',
+    age INTEGER CHECK (age >= 13 AND age <= 120),
+    gender TEXT CHECK (gender IN ('male', 'female', 'non-binary', 'prefer-not-to-say')),
+    timezone TEXT DEFAULT 'UTC',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- 2. Mood categories table (if not exists)
+CREATE TABLE IF NOT EXISTS public.mood_categories (
+    id SMALLSERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    emoji TEXT NOT NULL,
+    color_hex TEXT NOT NULL,
+    mood_score INTEGER NOT NULL CHECK (mood_score >= 1 AND mood_score <= 10),
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- Insert standard mood categories
+INSERT INTO public.mood_categories (name, emoji, color_hex, mood_score, description) VALUES
+('Happy', '😊', '#4CAF50', 8, 'Feeling joyful and content'),
+('Excited', '😄', '#FF9800', 9, 'Full of energy and enthusiasm'),
+('Calm', '😌', '#00BCD4', 7, 'Peaceful and relaxed'),
+('Neutral', '😐', '#9E9E9E', 5, 'Neither particularly good nor bad'),
+('Sad', '😔', '#2196F3', 3, 'Feeling down or melancholy'),
+('Angry', '😠', '#F44336', 2, 'Frustrated or irritated'),
+('Anxious', '😨', '#9C27B0', 3, 'Worried or stressed'),
+('Tired', '😴', '#607D8B', 4, 'Exhausted or sleepy')
+ON CONFLICT (name) DO NOTHING;
+
+-- 3. Mood entries table (if not exists)
+CREATE TABLE IF NOT EXISTS public.mood_entries (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
+    mood_category_id SMALLINT REFERENCES public.mood_categories(id) NOT NULL,
+    intensity INTEGER CHECK (intensity >= 1 AND intensity <= 10) DEFAULT 5,
+    note TEXT DEFAULT '',
+    location TEXT,
+    weather TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- 4. Private conversations table (for chat functionality)
+CREATE TABLE IF NOT EXISTS public.private_conversations (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    participant_1_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
+    participant_2_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    UNIQUE(participant_1_id, participant_2_id),
+    CHECK (participant_1_id != participant_2_id)
+);
+
+-- 5. Chat messages table (if not exists)
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
+    message TEXT NOT NULL CHECK (length(message) >= 1 AND length(message) <= 1000),
+    reply_to_message_id BIGINT REFERENCES public.chat_messages(id) ON DELETE SET NULL,
+    conversation_id UUID REFERENCES public.private_conversations(id) ON DELETE CASCADE,
+    is_edited BOOLEAN DEFAULT false,
+    is_private BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    -- Check that private messages have a conversation_id
+    CHECK ((is_private = true AND conversation_id IS NOT NULL) OR (is_private = false AND conversation_id IS NULL))
+);
+
+-- =============================================================================
+-- UTILITY FUNCTIONS (Required for triggers)
+-- =============================================================================
+
+-- Function to handle updated_at timestamp
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to handle new user creation
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.user_profiles (id, name)
+    VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'name', NEW.email));
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- =============================================================================
 -- 1. FRIEND REQUESTS TABLE
@@ -61,12 +167,89 @@ CREATE TABLE IF NOT EXISTS public.friend_activity_feed (
 );
 
 -- =============================================================================
--- ENABLE ROW LEVEL SECURITY
+-- ENABLE ROW LEVEL SECURITY FOR ALL TABLES
 -- =============================================================================
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mood_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.private_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.friend_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.friendships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_mood_sharing_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.friend_activity_feed ENABLE ROW LEVEL SECURITY;
+
+-- =============================================================================
+-- SECURITY POLICIES FOR CORE TABLES
+-- =============================================================================
+
+-- User profiles policies
+DROP POLICY IF EXISTS "Users can view profiles for chat and friends" ON public.user_profiles;
+CREATE POLICY "Users can view profiles for chat and friends" ON public.user_profiles
+    FOR SELECT USING (
+        -- User can always view their own profile
+        auth.uid() = id 
+        OR 
+        -- Anyone can view basic profile info for chat/friends functionality
+        true
+    );
+
+CREATE POLICY "Users can update own profile" ON public.user_profiles
+    FOR UPDATE USING (auth.uid() = id);
+
+-- Mood entries policies  
+CREATE POLICY "Users can view own mood entries" ON public.mood_entries
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own mood entries" ON public.mood_entries
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own mood entries" ON public.mood_entries
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Private conversations policies
+CREATE POLICY "Users can view their own conversations" ON public.private_conversations
+    FOR SELECT USING (auth.uid() = participant_1_id OR auth.uid() = participant_2_id);
+
+CREATE POLICY "Users can create conversations with friends" ON public.private_conversations
+    FOR INSERT WITH CHECK (
+        (auth.uid() = participant_1_id OR auth.uid() = participant_2_id)
+        AND EXISTS (
+            SELECT 1 FROM public.friendships f 
+            WHERE (f.user1_id = participant_1_id AND f.user2_id = participant_2_id)
+               OR (f.user1_id = participant_2_id AND f.user2_id = participant_1_id)
+        )
+    );
+
+-- Chat messages policies
+CREATE POLICY "Anyone can view public messages" ON public.chat_messages
+    FOR SELECT USING (is_private = false);
+
+CREATE POLICY "Users can view private messages in their conversations" ON public.chat_messages
+    FOR SELECT USING (
+        is_private = true AND 
+        conversation_id IN (
+            SELECT id FROM public.private_conversations 
+            WHERE participant_1_id = auth.uid() OR participant_2_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Authenticated users can insert public messages" ON public.chat_messages
+    FOR INSERT WITH CHECK (auth.uid() = user_id AND is_private = false);
+
+CREATE POLICY "Users can insert private messages to friends only" ON public.chat_messages
+    FOR INSERT WITH CHECK (
+        auth.uid() = user_id AND 
+        is_private = true AND
+        conversation_id IN (
+            SELECT pc.id FROM public.private_conversations pc
+            WHERE (pc.participant_1_id = auth.uid() OR pc.participant_2_id = auth.uid())
+            AND EXISTS (
+                SELECT 1 FROM public.friendships f 
+                WHERE (f.user1_id = pc.participant_1_id AND f.user2_id = pc.participant_2_id)
+                   OR (f.user1_id = pc.participant_2_id AND f.user2_id = pc.participant_1_id)
+            )
+        )
+    );
 
 -- =============================================================================
 -- SECURITY POLICIES FOR FRIEND REQUESTS
@@ -132,17 +315,43 @@ CREATE POLICY "Users can update their activity feed read status" ON public.frien
     FOR UPDATE USING (auth.uid() = user_id);
 
 -- =============================================================================
--- INDEXES FOR PERFORMANCE
+-- COMPREHENSIVE INDEXES FOR PERFORMANCE
 -- =============================================================================
+
+-- User profiles indexes
+CREATE INDEX IF NOT EXISTS user_profiles_name_idx ON public.user_profiles(name);
+CREATE INDEX IF NOT EXISTS user_profiles_created_at_idx ON public.user_profiles(created_at DESC);
+
+-- Mood entries indexes
+CREATE INDEX IF NOT EXISTS mood_entries_user_id_idx ON public.mood_entries(user_id);
+CREATE INDEX IF NOT EXISTS mood_entries_created_at_idx ON public.mood_entries(created_at DESC);
+CREATE INDEX IF NOT EXISTS mood_entries_user_created_idx ON public.mood_entries(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS mood_entries_category_idx ON public.mood_entries(mood_category_id);
+
+-- Private conversations indexes
+CREATE INDEX IF NOT EXISTS private_conversations_participant_1_idx ON public.private_conversations(participant_1_id);
+CREATE INDEX IF NOT EXISTS private_conversations_participant_2_idx ON public.private_conversations(participant_2_id);
+CREATE INDEX IF NOT EXISTS private_conversations_participants_idx ON public.private_conversations(participant_1_id, participant_2_id);
+
+-- Chat messages indexes
+CREATE INDEX IF NOT EXISTS chat_messages_user_id_idx ON public.chat_messages(user_id);
+CREATE INDEX IF NOT EXISTS chat_messages_created_at_idx ON public.chat_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS chat_messages_conversation_id_idx ON public.chat_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS chat_messages_private_idx ON public.chat_messages(is_private, created_at DESC);
+CREATE INDEX IF NOT EXISTS chat_messages_public_idx ON public.chat_messages(is_private, created_at DESC) WHERE is_private = false;
+
+-- Friend requests indexes
 CREATE INDEX IF NOT EXISTS friend_requests_sender_idx ON public.friend_requests(sender_id);
 CREATE INDEX IF NOT EXISTS friend_requests_receiver_idx ON public.friend_requests(receiver_id);
 CREATE INDEX IF NOT EXISTS friend_requests_status_idx ON public.friend_requests(status);
 CREATE INDEX IF NOT EXISTS friend_requests_created_at_idx ON public.friend_requests(created_at DESC);
 
+-- Friendships indexes
 CREATE INDEX IF NOT EXISTS friendships_user1_idx ON public.friendships(user1_id);
 CREATE INDEX IF NOT EXISTS friendships_user2_idx ON public.friendships(user2_id);
 CREATE INDEX IF NOT EXISTS friendships_users_idx ON public.friendships(user1_id, user2_id);
 
+-- Friend activity indexes
 CREATE INDEX IF NOT EXISTS friend_activity_user_idx ON public.friend_activity_feed(user_id);
 CREATE INDEX IF NOT EXISTS friend_activity_friend_idx ON public.friend_activity_feed(friend_id);
 CREATE INDEX IF NOT EXISTS friend_activity_type_idx ON public.friend_activity_feed(activity_type);
@@ -150,8 +359,27 @@ CREATE INDEX IF NOT EXISTS friend_activity_created_at_idx ON public.friend_activ
 CREATE INDEX IF NOT EXISTS friend_activity_unread_idx ON public.friend_activity_feed(user_id, is_read, created_at DESC);
 
 -- =============================================================================
--- UPDATED_AT TRIGGERS
+-- UPDATED_AT TRIGGERS FOR ALL TABLES
 -- =============================================================================
+
+-- Core table triggers
+CREATE TRIGGER user_profiles_updated_at 
+    BEFORE UPDATE ON public.user_profiles 
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER mood_entries_updated_at 
+    BEFORE UPDATE ON public.mood_entries 
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER private_conversations_updated_at 
+    BEFORE UPDATE ON public.private_conversations 
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER chat_messages_updated_at 
+    BEFORE UPDATE ON public.chat_messages 
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- Friends system triggers
 CREATE TRIGGER friend_requests_updated_at 
     BEFORE UPDATE ON public.friend_requests 
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
@@ -159,6 +387,11 @@ CREATE TRIGGER friend_requests_updated_at
 CREATE TRIGGER user_mood_sharing_settings_updated_at 
     BEFORE UPDATE ON public.user_mood_sharing_settings 
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- User creation trigger
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- =============================================================================
 -- FRIEND SYSTEM UTILITY FUNCTIONS
@@ -488,19 +721,32 @@ JOIN public.user_profiles up ON (
 WHERE f.user1_id = auth.uid() OR f.user2_id = auth.uid();
 
 -- =============================================================================
--- REAL-TIME SETUP FOR FRIENDS SYSTEM
+-- REAL-TIME SETUP FOR ALL TABLES
 -- =============================================================================
+ALTER PUBLICATION supabase_realtime ADD TABLE public.user_profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.mood_entries;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.private_conversations;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.friend_requests;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.friendships;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.friend_activity_feed;
 
 -- =============================================================================
--- GRANT PERMISSIONS
+-- COMPREHENSIVE PERMISSIONS GRANTS
 -- =============================================================================
+-- Grant permissions on all tables
+GRANT ALL ON public.user_profiles TO anon, authenticated;
+GRANT ALL ON public.mood_categories TO anon, authenticated;
+GRANT ALL ON public.mood_entries TO anon, authenticated;
+GRANT ALL ON public.private_conversations TO anon, authenticated;
+GRANT ALL ON public.chat_messages TO anon, authenticated;
 GRANT ALL ON public.friend_requests TO anon, authenticated;
 GRANT ALL ON public.friendships TO anon, authenticated;
 GRANT ALL ON public.user_mood_sharing_settings TO anon, authenticated;
 GRANT ALL ON public.friend_activity_feed TO anon, authenticated;
+
+-- Grant sequence permissions
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
 -- Grant permissions on new functions
 GRANT EXECUTE ON FUNCTION public.send_friend_request(UUID, TEXT) TO authenticated;
@@ -511,50 +757,70 @@ GRANT EXECUTE ON FUNCTION public.get_friend_recent_moods(UUID, INTEGER) TO authe
 GRANT EXECUTE ON FUNCTION public.are_users_friends(UUID, UUID) TO authenticated;
 
 -- =============================================================================
--- MIGRATION COMPLETE
+-- MIGRATION COMPLETE - VERIFICATION QUERIES
 -- =============================================================================
+
+-- Verify all tables exist
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND table_name IN (
+    'user_profiles', 'mood_categories', 'mood_entries', 
+    'private_conversations', 'chat_messages',
+    'friend_requests', 'friendships', 'user_mood_sharing_settings', 'friend_activity_feed'
+)
+ORDER BY table_name;
+
+-- Verify all functions exist
+SELECT routine_name FROM information_schema.routines 
+WHERE routine_schema = 'public' 
+AND routine_name IN (
+    'handle_updated_at', 'handle_new_user',
+    'send_friend_request', 'respond_to_friend_request', 'remove_friendship',
+    'get_user_friends', 'get_friend_recent_moods', 'are_users_friends',
+    'create_default_mood_sharing_settings'
+)
+ORDER BY routine_name;
 
 -- =============================================================================
 -- ADDITIONAL SECURITY POLICIES FOR PRIVATE MESSAGING
 -- =============================================================================
--- The application now enforces friends-only private messaging at the service layer.
--- Add these policies to your existing chat tables for database-level security:
+-- The application enforces friends-only private messaging at the service layer.
+-- The database policies above provide additional security at the database level.
 
--- 1. Policy for private_conversations table (if it exists)
--- CREATE POLICY "private_conversations_friends_only" ON private_conversations
--- FOR ALL USING (
---   -- User must be a participant in the conversation
---   (auth.uid() = participant_1_id OR auth.uid() = participant_2_id)
---   AND
---   -- Both participants must be friends
---   EXISTS (
---     SELECT 1 FROM friendships f 
---     WHERE (f.user1_id = participant_1_id AND f.user2_id = participant_2_id)
---        OR (f.user1_id = participant_2_id AND f.user2_id = participant_1_id)
---   )
--- );
+-- Optional: Additional policy for private_conversations (already included above)
+-- This ensures users can only create conversations with friends
 
--- 2. Policy for private_messages table (if it exists)
--- DROP POLICY IF EXISTS "private_messages_friends_only" ON private_messages;
--- CREATE POLICY "private_messages_friends_only" ON private_messages
--- FOR ALL USING (
---   -- User must be involved in the conversation (sender or participant)
---   EXISTS (
---     SELECT 1 FROM private_conversations pc
---     WHERE pc.id = conversation_id
---     AND (pc.participant_1_id = auth.uid() OR pc.participant_2_id = auth.uid())
---     AND EXISTS (
---       SELECT 1 FROM friendships f 
---       WHERE (f.user1_id = pc.participant_1_id AND f.user2_id = pc.participant_2_id)
---          OR (f.user1_id = pc.participant_2_id AND f.user2_id = pc.participant_1_id)
---     )
---   )
--- );
+-- Optional: Additional policy for private_messages (already included above)  
+-- This ensures users can only send private messages to friends
 
--- These policies ensure that:
--- 1. Users can only access conversations they're part of
--- 2. Both participants must be friends
--- 3. Users can read messages they send AND receive
+-- =============================================================================
+-- POST-MIGRATION INSTRUCTIONS
+-- =============================================================================
+-- 
+-- 1. ✅ Run this entire migration file in Supabase SQL Editor
+-- 2. ✅ Verify all tables and functions were created successfully
+-- 3. ✅ Test friends system functionality in your Flutter app
+-- 4. ✅ Test private messaging with friends-only enforcement
+-- 
+-- FEATURES ENABLED:
+-- ✅ Complete user profile system
+-- ✅ Mood tracking with categories and entries  
+-- ✅ Friend requests (send, accept, decline, cancel)
+-- ✅ Friendship management (add, remove, list)
+-- ✅ Friends-only private messaging
+-- ✅ Public community chat
+-- ✅ Mood sharing privacy controls
+-- ✅ Real-time updates for all features
+-- ✅ Comprehensive security policies
+-- ✅ Performance optimized with indexes
+-- 
+-- TROUBLESHOOTING:
+-- - If any function fails, check that all prerequisite tables exist
+-- - If policies fail, ensure RLS is enabled on all tables
+-- - If real-time doesn't work, verify supabase_realtime publication
+-- - For permission issues, check that grants were applied correctly
+-- 
 -- =============================================================================
 
-SELECT 'Friends system migration completed successfully!' as status;
+SELECT 'Complete friends system with chat migration completed successfully!' as status,
+       'All tables, functions, policies, and features are now ready for use.' as message;
