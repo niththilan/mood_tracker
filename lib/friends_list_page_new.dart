@@ -188,13 +188,11 @@ class _FriendsListPageState extends State<FriendsListPage>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Theme.of(
-                context,
-              ).colorScheme.primaryContainer.withValues(alpha: 0.1),
+              Theme.of(context).colorScheme.primaryContainer.withOpacity(0.1),
               Theme.of(context).colorScheme.surface,
               Theme.of(
                 context,
-              ).colorScheme.secondaryContainer.withValues(alpha: 0.05),
+              ).colorScheme.secondaryContainer.withOpacity(0.05),
             ],
           ),
         ),
@@ -399,9 +397,7 @@ class _FriendsListPageState extends State<FriendsListPage>
                   shape: BoxShape.circle,
                   gradient: SweepGradient(
                     colors: [
-                      Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.2),
+                      Theme.of(context).colorScheme.primary.withOpacity(0.2),
                       Theme.of(context).colorScheme.primary,
                     ],
                     stops: [0.0, value],
@@ -646,7 +642,7 @@ class _FriendsListPageState extends State<FriendsListPage>
                           Theme.of(context).colorScheme.surface,
                           Theme.of(
                             context,
-                          ).colorScheme.surfaceContainer.withValues(alpha: 0.3),
+                          ).colorScheme.surfaceContainer.withOpacity(0.3),
                         ],
                       ),
                     ),
@@ -685,7 +681,7 @@ class _FriendsListPageState extends State<FriendsListPage>
                                           : Theme.of(
                                             context,
                                           ).colorScheme.primary)
-                                      .withValues(alpha: 0.3),
+                                      .withOpacity(0.3),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -977,7 +973,7 @@ class _FriendsListPageState extends State<FriendsListPage>
                               decoration: BoxDecoration(
                                 color: _getStatusColor(
                                   request.status,
-                                ).withValues(alpha: 0.1),
+                                ).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -1010,7 +1006,7 @@ class _FriendsListPageState extends State<FriendsListPage>
                           icon: const Icon(Icons.cancel_outlined),
                           color: Colors.red,
                           style: IconButton.styleFrom(
-                            backgroundColor: Colors.red.withValues(alpha: 0.1),
+                            backgroundColor: Colors.red.withOpacity(0.1),
                           ),
                         )
                       else
