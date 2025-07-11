@@ -1,4 +1,4 @@
-// Models for the Friends System in the Mood Tracker App
+// Models for the Friends System in the MoodFlow App
 
 import 'package:flutter/material.dart';
 import 'chat_models.dart';

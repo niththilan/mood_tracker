@@ -87,7 +87,7 @@ class _FeatureShowcasePageState extends State<FeatureShowcasePage>
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Your mood tracker now features a beautiful, modern design with interactive elements',
+                      'Your MoodFlow app now features a beautiful, modern design with interactive elements',
                       style: Theme.of(context).textTheme.bodyLarge,
                       textAlign: TextAlign.center,
                     ),

@@ -148,7 +148,8 @@ class _SplashScreenState extends State<SplashScreen>
                     child: SizedBox(
                       width: 120,
                       child: LinearProgressIndicator(
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
                         valueColor: AlwaysStoppedAnimation<Color>(
                           theme.colorScheme.primary,
                         ),
@@ -165,7 +166,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Opacity(
                       opacity: _fadeAnimation.value * 0.7,
                       child: Text(
-                        'Preparing your mood tracker...',
+                        'Preparing your MoodFlow app...',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
