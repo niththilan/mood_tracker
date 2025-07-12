@@ -5,13 +5,13 @@ class SupabaseConfig {
 
   // Google OAuth Configuration
   static const String googleWebClientId =
-      '631111437135-l2a14dgadurrj360mbom28saane8fngu.apps.googleusercontent.com';
+      '631111437135-bvvu4b15elvmctbclkbmag856kke0nmq.apps.googleusercontent.com';
   static const String googleWebClientSecret =
-      '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'; // This should be your actual client secret, not a client ID
+      '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'; // This should be your actual client secret, not a client ID
   static const String googleAndroidClientId =
-      '631111437135-1hsnu14039cna6pkm0g7vue1vh71freq.apps.googleusercontent.com';
+      '631111437135-234lcguj55v09qd7415e7ohr2p55b58j.apps.googleusercontent.com';
   static const String googleIOSClientId =
-      '631111437135-2d8044eqftkl17cut2ofhbc0t1g6p8pe.apps.googleusercontent.com';
+      '631111437135-jg42a9hahfchrrfhva4mbb0bddaq5g5f.apps.googleusercontent.com';
   static const String oauthCallbackUrl =
       'https://xxasezacvotitccxnpaa.supabase.co/auth/v1/callback';
 }
