@@ -2292,53 +2292,6 @@ class _MoodHomePageState extends State<MoodHomePage>
                   icon: Container(
                     padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.book_outlined,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  tooltip: 'Mood Journal',
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        pageBuilder:
-                            (context, animation, secondaryAnimation) =>
-                                MoodJournal(),
-                        transitionsBuilder: (
-                          context,
-                          animation,
-                          secondaryAnimation,
-                          child,
-                        ) {
-                          return SlideTransition(
-                            position: Tween<Offset>(
-                              begin: Offset(1.0, 0.0),
-                              end: Offset.zero,
-                            ).animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeInOut,
-                              ),
-                            ),
-                            child: child,
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Container(
-                margin: EdgeInsets.only(right: 8),
-                child: IconButton(
-                  icon: Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.secondaryContainer,
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -2453,6 +2406,35 @@ class _MoodHomePageState extends State<MoodHomePage>
                   onSelected: (value) {
                     HapticFeedback.lightImpact();
                     switch (value) {
+                      case 'journal':
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) =>
+                                    MoodJournal(),
+                            transitionsBuilder: (
+                              context,
+                              animation,
+                              secondaryAnimation,
+                              child,
+                            ) {
+                              return SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: Offset(1.0, 0.0),
+                                  end: Offset.zero,
+                                ).animate(
+                                  CurvedAnimation(
+                                    parent: animation,
+                                    curve: Curves.easeInOut,
+                                  ),
+                                ),
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
+                        break;
                       case 'profile':
                         Navigator.push(
                           context,
@@ -2516,6 +2498,14 @@ class _MoodHomePageState extends State<MoodHomePage>
                   },
                   itemBuilder:
                       (context) => [
+                        PopupMenuItem(
+                          value: 'journal',
+                          child: ListTile(
+                            leading: Icon(Icons.book_outlined),
+                            title: Text('Mood Journal'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
                         PopupMenuItem(
                           value: 'profile',
                           child: ListTile(
