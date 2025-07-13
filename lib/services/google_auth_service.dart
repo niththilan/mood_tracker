@@ -1,6 +1,7 @@
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
 import 'supabase_config.dart';
 
 class GoogleAuthService {
@@ -10,7 +11,8 @@ class GoogleAuthService {
           ? null
           : GoogleSignIn(
             scopes: ['email', 'profile'],
-            // Use platform-specific client IDs from configuration files
+            // For iOS, explicitly set the client ID
+            clientId: _getClientId(),
           );
 
   /// Get the appropriate client ID for the current platform
@@ -18,9 +20,19 @@ class GoogleAuthService {
     if (kIsWeb) {
       return SupabaseConfig.googleWebClientId;
     } else {
-      // For mobile platforms, return null to use the configured client ID
-      // from platform-specific configurations (strings.xml for Android, Info.plist for iOS)
-      return null;
+      // For iOS, use the iOS client ID
+      // For Android, return null to use the configuration from strings.xml
+      try {
+        if (Platform.isIOS) {
+          return SupabaseConfig.googleIOSClientId;
+        } else {
+          // Android uses configuration from strings.xml
+          return null;
+        }
+      } catch (e) {
+        // Fallback for when Platform isn't available
+        return SupabaseConfig.googleIOSClientId;
+      }
     }
   }
 
@@ -62,6 +74,12 @@ class GoogleAuthService {
     }
 
     try {
+      // Check if already signed in and sign out to force fresh login
+      if (await _googleSignIn!.isSignedIn()) {
+        print('User already signed in, signing out to force fresh login...');
+        await _googleSignIn!.signOut();
+      }
+
       // Start Google Sign-In
       print('Initiating Google Sign-In...');
       final GoogleSignInAccount? googleUser = await _googleSignIn!.signIn();
@@ -97,6 +115,34 @@ class GoogleAuthService {
       return response;
     } catch (error) {
       print('Mobile Google Sign-In error: $error');
+
+      // Special handling for iOS errors
+      if (!kIsWeb) {
+        try {
+          if (Platform.isIOS) {
+            print('iOS-specific error handling...');
+            String errorString = error.toString().toLowerCase();
+            if (errorString.contains('keychainpassworditem') ||
+                errorString.contains('keychain')) {
+              throw Exception(
+                'Keychain error. Please restart the app and try again.',
+              );
+            } else if (errorString.contains('network')) {
+              throw Exception(
+                'Network error. Please check your internet connection.',
+              );
+            } else if (errorString.contains('sign_in_failed')) {
+              throw Exception(
+                'Google Sign-In failed. Please check your configuration.',
+              );
+            }
+          }
+        } catch (platformError) {
+          // Fallback if Platform check fails
+          print('Platform check failed: $platformError');
+        }
+      }
+
       throw error;
     }
   }
@@ -224,12 +270,32 @@ class GoogleAuthService {
       print('Web platform detected - using Supabase OAuth flow only');
     } else if (_googleSignIn != null) {
       try {
+        print('Initializing Google Sign-In for mobile platform...');
+        print('Client ID: ${_getClientId() ?? "Using platform configuration"}');
         await _googleSignIn!.signInSilently();
         print('Google Sign-In initialized for mobile');
       } catch (error) {
         print(
           'Silent sign-in failed (expected if user not previously signed in): $error',
         );
+      }
+    }
+  }
+
+  /// Initialize Google Sign-In specifically for iOS
+  static Future<void> initializeForIOS() async {
+    if (!kIsWeb) {
+      try {
+        if (Platform.isIOS && _googleSignIn != null) {
+          print('Initializing Google Sign-In for iOS...');
+          print('iOS Client ID: ${SupabaseConfig.googleIOSClientId}');
+          // Attempt silent sign-in to restore previous session
+          await _googleSignIn!.signInSilently();
+          print('iOS Google Sign-In initialized successfully');
+        }
+      } catch (error) {
+        print('iOS Google Sign-In initialization failed: $error');
+        // This is expected if user hasn't signed in before
       }
     }
   }

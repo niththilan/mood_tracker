@@ -55,6 +55,9 @@ void _initializeSupabase() async {
 
     // Initialize Google Sign-In for web asynchronously
     GoogleAuthService.initializeForWeb();
+
+    // Initialize Google Sign-In for iOS specifically
+    GoogleAuthService.initializeForIOS();
   } catch (e) {
     Logger.error('Initialization error: $e');
     // Continue anyway - we'll handle errors in UI
