@@ -14,19 +14,19 @@ void main() {
       expect(
         SupabaseConfig.googleWebClientId,
         equals(
-          '631111437135-rmre7e09akna4ln09ha33vnvnmee9gu9.apps.googleusercontent.com',
+          '631111437135-bvvu4b15elvmctbclkbmag856kke0nmq.apps.googleusercontent.com',
         ),
       );
       expect(
         SupabaseConfig.googleAndroidClientId,
         equals(
-          '631111437135-tcgtegjv0lhkeu2b9etg5gebil1869km.apps.googleusercontent.com',
+          '631111437135-234lcguj55v09qd7415e7ohr2p55b58j.apps.googleusercontent.com',
         ),
       );
       expect(
         SupabaseConfig.googleIOSClientId,
         equals(
-          '631111437135-7qpnbn8g86r44rj8s2nhai7jth30gm10.apps.googleusercontent.com',
+          '631111437135-jg42a9hahfchrrfhva4mbb0bddaq5g5f.apps.googleusercontent.com',
         ),
       );
 

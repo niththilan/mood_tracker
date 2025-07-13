@@ -47,20 +47,38 @@ class GoogleAuthService {
         'Client ID: ${_getClientId() ?? 'Platform-specific (from config files)'}',
       );
       print('Supabase URL: ${SupabaseConfig.supabaseUrl}');
-      print('OAuth Callback URL: ${SupabaseConfig.oauthCallbackUrl}');
 
-      // For web, use Supabase OAuth flow to avoid redirect_uri_mismatch
+      AuthResponse? response;
+
+      // Use appropriate flow based on platform
       if (kIsWeb) {
-        return await _signInWithSupabaseOAuth();
+        print('Using web OAuth flow...');
+        response = await _signInWithSupabaseOAuth();
+      } else {
+        print('Using mobile Google Sign-In flow...');
+        response = await _signInWithGoogleMobile();
       }
 
-      // For mobile, use standard Google Sign-In
-      return await _signInWithGoogleMobile();
+      if (response != null) {
+        print('=== Google Sign-In Successful ===');
+        print('User: ${response.user?.email}');
+        print('Session: ${response.session != null ? 'Valid' : 'Invalid'}');
+      } else {
+        print('=== Google Sign-In Cancelled or Failed ===');
+      }
+
+      return response;
     } catch (error) {
       print('=== Google Sign-In Error ===');
       print('Error type: ${error.runtimeType}');
       print('Error message: $error');
       print('=== End Error ===');
+
+      // Don't wrap the error if it's already a user-friendly message
+      if (error is Exception) {
+        rethrow;
+      }
+
       throw Exception(_getErrorMessage(error));
     }
   }
@@ -74,15 +92,19 @@ class GoogleAuthService {
     }
 
     try {
-      // Check if already signed in and sign out to force fresh login
-      if (await _googleSignIn!.isSignedIn()) {
-        print('User already signed in, signing out to force fresh login...');
-        await _googleSignIn!.signOut();
-      }
+      // Ensure we start fresh
+      await _googleSignIn!.signOut();
 
-      // Start Google Sign-In
+      // Start Google Sign-In with timeout
       print('Initiating Google Sign-In...');
-      final GoogleSignInAccount? googleUser = await _googleSignIn!.signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn!
+          .signIn()
+          .timeout(
+            Duration(seconds: 30),
+            onTimeout: () {
+              throw Exception('Google Sign-In timed out. Please try again.');
+            },
+          );
 
       if (googleUser == null) {
         print('User cancelled the sign-in');
@@ -91,111 +113,188 @@ class GoogleAuthService {
 
       print('Google user obtained: ${googleUser.email}');
 
-      // Get authentication details
+      // Get authentication details with retry mechanism
       print('Getting authentication details...');
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      GoogleSignInAuthentication? googleAuth;
+
+      for (int i = 0; i < 3; i++) {
+        try {
+          googleAuth = await googleUser.authentication.timeout(
+            Duration(seconds: 15),
+            onTimeout: () {
+              throw Exception('Authentication timeout');
+            },
+          );
+          break;
+        } catch (e) {
+          print('Authentication attempt ${i + 1} failed: $e');
+          if (i == 2) rethrow;
+          await Future.delayed(Duration(seconds: 1));
+        }
+      }
+
+      if (googleAuth == null) {
+        throw Exception('Failed to get authentication details');
+      }
 
       print('ID Token available: ${googleAuth.idToken != null}');
       print('Access Token available: ${googleAuth.accessToken != null}');
 
       if (googleAuth.idToken == null) {
-        throw Exception('No ID token received from Google');
+        throw Exception(
+          'No ID token received from Google. Please check your configuration.',
+        );
       }
 
-      // Sign in to Supabase
+      // Sign in to Supabase with better error handling
       print('Signing in to Supabase with Google credentials...');
-      final AuthResponse response = await _supabase.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: googleAuth.idToken!,
-        accessToken: googleAuth.accessToken,
-      );
+      try {
+        final AuthResponse response = await _supabase.auth
+            .signInWithIdToken(
+              provider: OAuthProvider.google,
+              idToken: googleAuth.idToken!,
+              accessToken: googleAuth.accessToken,
+            )
+            .timeout(
+              Duration(seconds: 30),
+              onTimeout: () {
+                throw Exception('Supabase authentication timed out');
+              },
+            );
 
-      print('Supabase authentication successful');
-      return response;
+        print('Supabase authentication successful');
+        print('User ID: ${response.user?.id}');
+        print('User email: ${response.user?.email}');
+
+        return response;
+      } catch (supabaseError) {
+        print('Supabase authentication error: $supabaseError');
+
+        // Provide specific error messages for common Supabase issues
+        String errorMsg = supabaseError.toString().toLowerCase();
+        if (errorMsg.contains('invalid_token') || errorMsg.contains('jwt')) {
+          throw Exception('Invalid Google token. Please try signing in again.');
+        } else if (errorMsg.contains('timeout')) {
+          throw Exception(
+            'Authentication service timed out. Please try again.',
+          );
+        } else if (errorMsg.contains('network')) {
+          throw Exception(
+            'Network error during authentication. Please check your connection.',
+          );
+        }
+
+        throw Exception(
+          'Authentication failed: ${_getErrorMessage(supabaseError)}',
+        );
+      }
     } catch (error) {
       print('Mobile Google Sign-In error: $error');
 
-      // Special handling for iOS errors
+      // Enhanced error handling for different platforms and scenarios
+      String errorString = error.toString().toLowerCase();
+
+      if (errorString.contains('sign_in_canceled') ||
+          errorString.contains('user_canceled') ||
+          errorString.contains('cancelled')) {
+        return null; // User cancelled, not an error
+      }
+
+      if (errorString.contains('network_error') ||
+          errorString.contains('network')) {
+        throw Exception(
+          'Network error. Please check your internet connection and try again.',
+        );
+      }
+
+      if (errorString.contains('sign_in_failed') ||
+          errorString.contains('developer_error')) {
+        throw Exception(
+          'Google Sign-In configuration error. Please check your setup.',
+        );
+      }
+
+      if (errorString.contains('timeout')) {
+        throw Exception('Sign-in timed out. Please try again.');
+      }
+
+      // Platform-specific error handling
       if (!kIsWeb) {
         try {
           if (Platform.isIOS) {
             print('iOS-specific error handling...');
-            String errorString = error.toString().toLowerCase();
             if (errorString.contains('keychainpassworditem') ||
                 errorString.contains('keychain')) {
               throw Exception(
                 'Keychain error. Please restart the app and try again.',
               );
-            } else if (errorString.contains('network')) {
+            } else if (errorString.contains('uiapplicationdelegate')) {
               throw Exception(
-                'Network error. Please check your internet connection.',
+                'App configuration error. Please contact support.',
               );
-            } else if (errorString.contains('sign_in_failed')) {
+            }
+          } else if (Platform.isAndroid) {
+            print('Android-specific error handling...');
+            if (errorString.contains('resolution_required')) {
               throw Exception(
-                'Google Sign-In failed. Please check your configuration.',
+                'Google Play Services update required. Please update and try again.',
+              );
+            } else if (errorString.contains('api_not_connected')) {
+              throw Exception(
+                'Google Play Services connection failed. Please try again.',
               );
             }
           }
         } catch (platformError) {
-          // Fallback if Platform check fails
           print('Platform check failed: $platformError');
         }
       }
 
-      throw error;
+      throw Exception(_getErrorMessage(error));
     }
   }
 
   /// Supabase OAuth flow (fallback for web)
   static Future<AuthResponse?> _signInWithSupabaseOAuth() async {
     print('Using Supabase OAuth flow...');
-    print('Using Supabase callback URL to avoid redirect_uri_mismatch');
 
     try {
-      // Always use Supabase callback URL for web to match Google Cloud Console configuration
-      final redirectUrl = SupabaseConfig.oauthCallbackUrl;
-      print('Redirect URL: $redirectUrl');
-
+      // For web, use a more direct approach with better error handling
       final bool success = await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: redirectUrl,
+        redirectTo: kIsWeb ? null : SupabaseConfig.oauthCallbackUrl,
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
 
-      if (success) {
-        print('Supabase OAuth authentication initiated');
-
-        // Wait a bit for the redirect to complete
-        await Future.delayed(Duration(milliseconds: 1000));
-
-        final User? user = _supabase.auth.currentUser;
-        if (user != null) {
-          print('User authenticated successfully: ${user.email}');
-          return AuthResponse(
-            user: user,
-            session: _supabase.auth.currentSession,
-          );
-        } else {
-          print('Waiting for authentication to complete...');
-          // Try waiting a bit longer for the callback
-          await Future.delayed(Duration(milliseconds: 2000));
-          final User? delayedUser = _supabase.auth.currentUser;
-          if (delayedUser != null) {
-            print('User authenticated after delay: ${delayedUser.email}');
-            return AuthResponse(
-              user: delayedUser,
-              session: _supabase.auth.currentSession,
-            );
-          }
-        }
+      if (!success) {
+        throw Exception('Failed to initiate OAuth flow');
       }
 
-      print('OAuth authentication failed or user cancelled');
+      print('OAuth flow initiated successfully');
+
+      // For web, the authentication state will be handled by Supabase auth state changes
+      // We don't need to wait here as the callback will handle the authentication
       return null;
     } catch (error) {
       print('Supabase OAuth error: $error');
-      throw error;
+
+      // Provide more specific error messages
+      String errorMessage = error.toString().toLowerCase();
+      if (errorMessage.contains('popup_blocked')) {
+        throw Exception(
+          'Popup was blocked. Please allow popups and try again.',
+        );
+      } else if (errorMessage.contains('redirect_uri')) {
+        throw Exception('OAuth configuration error. Please check your setup.');
+      } else if (errorMessage.contains('network')) {
+        throw Exception(
+          'Network error. Please check your internet connection.',
+        );
+      }
+
+      throw Exception(
+        'OAuth authentication failed: ${_getErrorMessage(error)}',
+      );
     }
   }
 
@@ -265,20 +364,39 @@ class GoogleAuthService {
 
   /// Initialize Google Sign-In for web (call this early in app lifecycle)
   static Future<void> initializeForWeb() async {
-    if (kIsWeb) {
-      // On web, we don't use GoogleSignIn package, so no initialization needed
-      print('Web platform detected - using Supabase OAuth flow only');
-    } else if (_googleSignIn != null) {
-      try {
+    try {
+      if (kIsWeb) {
+        print('Web platform detected - using Supabase OAuth flow');
+        print('Web client ID: ${SupabaseConfig.googleWebClientId}');
+        // For web, initialization is handled by Supabase
+        // Just verify the configuration
+        if (SupabaseConfig.googleWebClientId.isEmpty) {
+          print('WARNING: Web client ID is not configured');
+        }
+      } else if (_googleSignIn != null) {
         print('Initializing Google Sign-In for mobile platform...');
         print('Client ID: ${_getClientId() ?? "Using platform configuration"}');
-        await _googleSignIn!.signInSilently();
+
+        try {
+          // Try silent sign-in to restore previous session
+          final GoogleSignInAccount? account =
+              await _googleSignIn!.signInSilently();
+          if (account != null) {
+            print('Silent sign-in successful for: ${account.email}');
+          } else {
+            print('No previous sign-in session found');
+          }
+        } catch (silentError) {
+          print(
+            'Silent sign-in failed (expected if user not previously signed in): $silentError',
+          );
+        }
+
         print('Google Sign-In initialized for mobile');
-      } catch (error) {
-        print(
-          'Silent sign-in failed (expected if user not previously signed in): $error',
-        );
       }
+    } catch (error) {
+      print('Google Sign-In initialization error: $error');
+      // Don't throw error during initialization
     }
   }
 
