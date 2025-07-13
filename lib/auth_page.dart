@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'dart:math' as math;
@@ -527,6 +528,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     try {
       final response = await GoogleAuthService.signInWithGoogle();
 
+      // For web, the response might be null as auth is handled by the main app listener
       if (response?.user != null && mounted) {
         final user = response!.user!;
         // Check if user profile exists
@@ -572,6 +574,32 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => MoodHomePage()),
         );
+      } else if (response == null) {
+        // For web OAuth, response might be null - auth will be handled by AuthWrapper
+        // Show a loading message and let the main auth listener handle the rest
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.info, color: Colors.white),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Sign-in initiated. Please complete authentication in the popup.',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.blue,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       }
     } catch (error) {
       if (mounted) {
@@ -606,6 +634,66 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _testGoogleSignIn() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      print('=== Testing Google Sign-In ===');
+      
+      // First, test the configuration
+      if (!kIsWeb && Platform.isIOS) {
+        final configTest = await GoogleAuthService.testIOSConfiguration();
+        print('iOS configuration test: ${configTest ? "PASSED" : "FAILED"}');
+      }
+      
+      // Then attempt sign-in
+      final result = await GoogleAuthService.signInWithGoogle();
+      
+      if (result?.user != null) {
+        print('✅ Google Sign-In successful!');
+        print('User: ${result!.user!.email}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Google Sign-In successful!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        print('⚠️ Google Sign-In returned null');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Google Sign-In was cancelled or failed'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      print('❌ Google Sign-In error: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google Sign-In error: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -630,8 +718,12 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                 end: Alignment.bottomRight,
                 colors: [
                   Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
-                  Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.05),
+                  Theme.of(
+                    context,
+                  ).colorScheme.secondary.withValues(alpha: 0.1),
+                  Theme.of(
+                    context,
+                  ).colorScheme.tertiary.withValues(alpha: 0.05),
                 ],
                 stops: const [0.0, 0.7, 1.0],
               ),
@@ -667,7 +759,9 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
           scale: _isLoading ? _pulseAnimation.value : 1.0,
           child: Card(
             elevation: _isLoading ? 16 : 12,
-            shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+            shadowColor: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.3),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(28),
             ),
@@ -679,7 +773,9 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                   end: Alignment.bottomRight,
                   colors: [
                     Theme.of(context).colorScheme.surface,
-                    Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
+                    Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0.9),
                   ],
                 ),
               ),
@@ -767,9 +863,8 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                                   width: 4,
                                   height: 4,
                                   decoration: BoxDecoration(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary.withValues(alpha: 0.6),
+                                    color: Theme.of(context).colorScheme.primary
+                                        .withValues(alpha: 0.6),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -829,7 +924,9 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
             ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.2),
             ),
           ),
           child: Stack(
@@ -848,7 +945,9 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                     gradient: LinearGradient(
                       colors: [
                         Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                        Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.8),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -1431,7 +1530,8 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: strength['value'],
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          backgroundColor:
+              Theme.of(context).colorScheme.surfaceContainerHighest,
           valueColor: AlwaysStoppedAnimation<Color>(strength['color']),
         ),
       ],
@@ -1467,7 +1567,9 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                   gradient: LinearGradient(
                     colors: [
                       Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                      Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.8),
                     ],
                   ),
                   boxShadow: [
@@ -1587,7 +1689,9 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.5),
               width: 1.5,
             ),
             gradient: LinearGradient(
@@ -1673,6 +1777,39 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         ],
 
         const SizedBox(height: 16),
+
+        // Debug button for iOS Google Sign-In testing
+        if (!kIsWeb && Platform.isIOS) ...[
+          Center(
+            child: OutlinedButton.icon(
+              onPressed: _testGoogleSignIn,
+              icon: Icon(
+                Icons.bug_report,
+                size: 16,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+              label: Text(
+                'Test iOS Google Sign-In',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.secondary,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.5),
+                  width: 1,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
       ],
     );
   }

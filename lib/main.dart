@@ -20,6 +20,7 @@ import 'profile_page.dart';
 import 'services/user_profile_service.dart';
 import 'services/theme_service.dart';
 import 'services/google_auth_service.dart';
+import 'services/auth_redirect_handler.dart';
 import 'widgets/theme_toggle_widget.dart';
 import 'widgets/color_theme_button.dart';
 import 'widgets/interactive_logo.dart';
@@ -51,6 +52,10 @@ void _initializeSupabase() async {
       anonKey:
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4YXNlemFjdm90aXRjY3hucGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1ODE3MTIsImV4cCI6MjA2NDE1NzcxMn0.aUygIOPiI1HqFwKifXGYIolzeIQGbpjzGCC861LHRS4',
       debug: false, // Disable debug logs for better performance
+      authOptions: FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce, // Use PKCE for better security
+        autoRefreshToken: true,
+      ),
     );
 
     // Initialize Google Sign-In for web asynchronously
@@ -139,6 +144,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   bool _isInitialized = false;
   bool _onboardingCompleted = false;
   Session? _session;
+  bool _isHandlingAuthChange = false; // Prevent multiple simultaneous auth changes
 
   @override
   void initState() {
@@ -166,55 +172,80 @@ class _AuthWrapperState extends State<AuthWrapper> {
           setState(() {});
         }
 
-        // Listen to auth changes
+        // Listen to auth changes with better handling
         Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
-          if (mounted) {
-            setState(() {
-              _session = data.session;
-            });
+          // Use redirect handler to prevent loops
+          if (!AuthRedirectHandler.shouldHandleAuthChange(data.event)) {
+            return;
+          }
 
-            // Handle sign out event explicitly
-            if (data.event == AuthChangeEvent.signedOut) {
-              print('User signed out, clearing session...');
+          // Prevent multiple simultaneous auth change handlers
+          if (_isHandlingAuthChange) {
+            print('Auth change already being handled, skipping...');
+            return;
+          }
+
+          _isHandlingAuthChange = true;
+          AuthRedirectHandler.startHandling();
+
+          try {
+            if (mounted) {
               setState(() {
-                _session = null;
+                _session = data.session;
               });
-              return;
-            }
 
-            // Only ensure user profile exists for existing logins, not new signups
-            if (data.session?.user != null &&
-                data.event == AuthChangeEvent.signedIn) {
-              print(
-                'User signed in (event: ${data.event}), checking if profile exists...',
-              );
-              // Add a small delay to allow signup profile creation to complete
-              await Future.delayed(
-                Duration(milliseconds: 500),
-              ); // Reduced delay
+              final userEmail = data.session != null ? data.session!.user.email ?? 'none' : 'none';
+              print('Auth state change: ${data.event}, user: $userEmail');
 
-              // Only create default profile if no profile exists and it's not a new signup
-              final existingProfile = await UserProfileService.getUserProfile(
-                data.session!.user.id,
-              );
-              if (existingProfile == null) {
+              // Handle sign out event explicitly
+              if (data.event == AuthChangeEvent.signedOut) {
+                print('User signed out, clearing session...');
+                setState(() {
+                  _session = null;
+                });
+                AuthRedirectHandler.reset(); // Reset handler on sign out
+                return;
+              }
+
+              // Only ensure user profile exists for existing logins, not new signups
+              if (data.session?.user != null &&
+                  data.event == AuthChangeEvent.signedIn) {
                 print(
-                  'No profile found for existing user, creating default profile...',
+                  'User signed in (event: ${data.event}), checking if profile exists...',
                 );
-                final profileCreated =
-                    await UserProfileService.createUserProfile(
-                      userId: data.session!.user.id,
-                      name: data.session!.user.email?.split('@')[0] ?? 'User',
-                    );
-                if (!profileCreated) {
-                  print('Failed to create user profile in auth state change');
+                // Add a small delay to allow signup profile creation to complete
+                await Future.delayed(
+                  Duration(milliseconds: 500),
+                ); // Reduced delay
+
+                // Only create default profile if no profile exists and it's not a new signup
+                final existingProfile = await UserProfileService.getUserProfile(
+                  data.session!.user.id,
+                );
+                if (existingProfile == null) {
+                  print(
+                    'No profile found for existing user, creating default profile...',
+                  );
+                  final profileCreated =
+                      await UserProfileService.createUserProfile(
+                        userId: data.session!.user.id,
+                        name: data.session!.user.email?.split('@')[0] ?? 'User',
+                      );
+                  if (!profileCreated) {
+                    print('Failed to create user profile in auth state change');
+                  }
+                } else {
+                  print(
+                    'Profile already exists with name: ${existingProfile['name']}',
+                  );
                 }
-              } else {
-                print(
-                  'Profile already exists with name: ${existingProfile['name']}',
-                );
               }
             }
+          } catch (e) {
+            print('Error in auth state change handler: $e');
+          } finally {
+            _isHandlingAuthChange = false;
+            AuthRedirectHandler.finishHandling();
           }
         });
 

@@ -43,18 +43,14 @@ class GoogleAuthService {
   static Future<AuthResponse?> signInWithGoogle() async {
     try {
       print('=== Starting Google Sign-In ===');
-      print('Platform: ${kIsWeb ? 'Web' : 'Mobile'}');
-      print(
-        'Client ID: ${_getClientId() ?? 'Platform-specific (from config files)'}',
-      );
-      print('Supabase URL: ${SupabaseConfig.supabaseUrl}');
+      await debugGoogleSignIn(); // Add debug info
 
       AuthResponse? response;
 
       // Use appropriate flow based on platform
       if (kIsWeb) {
-        print('Using web OAuth flow...');
-        response = await _signInWithSupabaseOAuth();
+        print('Using simplified web OAuth flow...');
+        response = await _signInWithSupabaseOAuthSimple();
       } else {
         print('Using mobile Google Sign-In flow...');
         response = await _signInWithGoogleMobile();
@@ -65,7 +61,7 @@ class GoogleAuthService {
         print('User: ${response.user?.email}');
         print('Session: ${response.session != null ? 'Valid' : 'Invalid'}');
       } else {
-        print('=== Google Sign-In Cancelled or Failed ===');
+        print('=== Google Sign-In Initiated (web) or Cancelled ===');
       }
 
       return response;
@@ -237,11 +233,27 @@ class GoogleAuthService {
             if (errorString.contains('keychainpassworditem') ||
                 errorString.contains('keychain')) {
               throw Exception(
-                'Keychain error. Please restart the app and try again.',
+                'Keychain error on iOS. Please restart the app and try again.',
               );
             } else if (errorString.contains('uiapplicationdelegate')) {
               throw Exception(
-                'App configuration error. Please contact support.',
+                'iOS app configuration error. Please contact support.',
+              );
+            } else if (errorString.contains('invalid_client')) {
+              throw Exception(
+                'Invalid iOS client configuration. Please check Google Sign-In setup.',
+              );
+            } else if (errorString.contains('sign_in_required')) {
+              throw Exception(
+                'Please sign in to Google first.',
+              );
+            } else if (errorString.contains('permission_denied')) {
+              throw Exception(
+                'Permission denied. Please check app permissions in iOS Settings.',
+              );
+            } else if (errorString.contains('configuration_not_found')) {
+              throw Exception(
+                'Google configuration file not found. Please check GoogleService-Info.plist.',
               );
             }
           } else if (Platform.isAndroid) {
@@ -270,38 +282,42 @@ class GoogleAuthService {
     print('Using Supabase OAuth flow for web...');
 
     try {
-      // For web, use Supabase OAuth with popup mode for better UX
-      final bool success = await _supabase.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: kIsWeb ? null : SupabaseConfig.oauthCallbackUrl,
-        authScreenLaunchMode: LaunchMode.externalApplication,
-      );
-
-      if (!success) {
-        throw Exception('Failed to initiate OAuth flow');
+      // Check if user is already authenticated
+      final currentSession = _supabase.auth.currentSession;
+      if (currentSession?.user != null) {
+        print('User already authenticated, returning existing session');
+        return AuthResponse(
+          session: currentSession,
+          user: currentSession!.user,
+        );
       }
 
-      print('OAuth flow initiated successfully');
-
-      // For web, we need to wait for the auth state change
       // Create a completer to wait for the authentication result
       final completer = Completer<AuthResponse?>();
-
-      // Set up a temporary listener for auth state changes
       late StreamSubscription authSubscription;
 
-      // Set a timeout for the OAuth flow
-      Timer(Duration(seconds: 60), () {
-        if (!completer.isCompleted) {
-          authSubscription.cancel();
-          completer.completeError(Exception('OAuth sign-in timed out'));
-        }
-      });
-
+      // Set up auth state listener BEFORE initiating OAuth
       authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
-        // Only complete if we get a successful sign-in event
+        print(
+          'Auth state change: ${data.event}, session: ${data.session != null}',
+        );
+
+        // Complete on successful sign-in
         if (data.event == AuthChangeEvent.signedIn && data.session != null) {
           if (!completer.isCompleted) {
+            print('OAuth sign-in successful, completing...');
+            authSubscription.cancel();
+            completer.complete(
+              AuthResponse(session: data.session, user: data.session!.user),
+            );
+          }
+        }
+
+        // Handle token refresh events as well (user might already be signed in)
+        if (data.event == AuthChangeEvent.tokenRefreshed &&
+            data.session != null) {
+          if (!completer.isCompleted) {
+            print('Token refreshed, user was already signed in, completing...');
             authSubscription.cancel();
             completer.complete(
               AuthResponse(session: data.session, user: data.session!.user),
@@ -310,8 +326,41 @@ class GoogleAuthService {
         }
       });
 
+      // Set timeout
+      final timeoutTimer = Timer(Duration(seconds: 60), () {
+        if (!completer.isCompleted) {
+          print('OAuth timeout reached');
+          authSubscription.cancel();
+          completer.completeError(Exception('OAuth sign-in timed out'));
+        }
+      });
+
+      // Initiate OAuth flow
+      print('Initiating OAuth flow...');
+      final bool success = await _supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? null : SupabaseConfig.oauthCallbackUrl,
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+
+      if (!success) {
+        authSubscription.cancel();
+        timeoutTimer.cancel();
+        throw Exception('Failed to initiate OAuth flow');
+      }
+
+      print('OAuth flow initiated successfully, waiting for completion...');
+
       // Wait for the OAuth flow to complete
-      return await completer.future;
+      try {
+        final result = await completer.future;
+        timeoutTimer.cancel();
+        return result;
+      } catch (e) {
+        authSubscription.cancel();
+        timeoutTimer.cancel();
+        rethrow;
+      }
     } catch (error) {
       print('Supabase OAuth error: $error');
 
@@ -334,6 +383,127 @@ class GoogleAuthService {
       throw Exception(
         'OAuth authentication failed: ${_getErrorMessage(error)}',
       );
+    }
+  }
+
+  /// Debug method to check Google Sign-In configuration and state
+  static Future<void> debugGoogleSignIn() async {
+    print('=== Google Sign-In Debug Info ===');
+    print('Platform: ${kIsWeb ? 'Web' : 'Mobile'}');
+    print('Client ID: ${_getClientId() ?? 'Platform-specific'}');
+    print('Supabase URL: ${SupabaseConfig.supabaseUrl}');
+    print('Current Supabase session: ${_supabase.auth.currentSession != null}');
+
+    if (kIsWeb) {
+      print('Web Client ID: ${SupabaseConfig.googleWebClientId}');
+      print('OAuth Callback URL: ${SupabaseConfig.oauthCallbackUrl}');
+    } else {
+      print('Google Sign-In instance: ${_googleSignIn != null}');
+      if (_googleSignIn != null) {
+        try {
+          final isSignedIn = await _googleSignIn!.isSignedIn();
+          final currentUser = _googleSignIn!.currentUser;
+          print('Mobile signed in: $isSignedIn');
+          print('Current user: ${currentUser?.email}');
+        } catch (e) {
+          print('Error checking mobile sign-in status: $e');
+        }
+      }
+    }
+    print('=== End Debug Info ===');
+  }
+
+  /// Simplified web OAuth with better error handling and redirect loop prevention
+  static Future<AuthResponse?> _signInWithSupabaseOAuthSimple() async {
+    print('Using simplified Supabase OAuth flow...');
+
+    try {
+      // Check if we're already signed in to prevent unnecessary redirects
+      final currentSession = _supabase.auth.currentSession;
+      if (currentSession?.user != null) {
+        print('User already authenticated, returning existing session');
+        return AuthResponse(
+          session: currentSession,
+          user: currentSession!.user,
+        );
+      }
+
+      // Clear any existing auth state to prevent conflicts
+      print('Clearing any existing auth state...');
+      try {
+        await _supabase.auth.signOut(scope: SignOutScope.local);
+      } catch (e) {
+        print('Failed to clear existing auth state (this is OK): $e');
+      }
+
+      // For web, initiate OAuth and return immediately
+      // The main app's auth listener will handle the response
+      print('Initiating OAuth with Google...');
+      final bool success = await _supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? null : SupabaseConfig.oauthCallbackUrl,
+        authScreenLaunchMode: LaunchMode.externalApplication,
+        queryParams: {
+          'access_type': 'offline',
+          'prompt': 'consent', // Force consent screen to avoid cached redirects
+        },
+      );
+
+      if (!success) {
+        throw Exception('Failed to initiate OAuth flow');
+      }
+
+      print(
+        'OAuth initiated successfully - auth state will be handled by main app listener',
+      );
+
+      // Return null - the auth state change will be handled by AuthWrapper
+      // This prevents race conditions and is more reliable
+      return null;
+    } catch (error) {
+      print('Simple OAuth error: $error');
+
+      String errorMessage = error.toString().toLowerCase();
+      if (errorMessage.contains('popup_blocked')) {
+        throw Exception(
+          'Popup was blocked. Please allow popups and try again.',
+        );
+      } else if (errorMessage.contains('redirect_uri')) {
+        throw Exception('OAuth configuration error. Please check your setup.');
+      } else if (errorMessage.contains('network')) {
+        throw Exception(
+          'Network error. Please check your internet connection.',
+        );
+      } else if (errorMessage.contains('too_many_redirects')) {
+        throw Exception(
+          'Redirect loop detected. Please clear your browser cache and try again.',
+        );
+      }
+
+      throw Exception(
+        'OAuth authentication failed: ${_getErrorMessage(error)}',
+      );
+    }
+  }
+
+  /// Clear OAuth state to fix redirect loops (especially useful for web)
+  static Future<void> clearOAuthState() async {
+    try {
+      print('Clearing OAuth state...');
+      
+      // Sign out from Supabase with global scope to clear all sessions
+      await _supabase.auth.signOut(scope: SignOutScope.global);
+      
+      // For mobile, also clear Google Sign-In
+      if (_googleSignIn != null && await _googleSignIn!.isSignedIn()) {
+        await _googleSignIn!.signOut();
+        await _googleSignIn!.disconnect();
+      }
+      
+      print('OAuth state cleared successfully');
+    } catch (error) {
+      print('Error clearing OAuth state: $error');
+      // Don't throw error, as this is a cleanup operation
     }
   }
 
@@ -455,5 +625,45 @@ class GoogleAuthService {
         // This is expected if user hasn't signed in before
       }
     }
+  }
+
+  /// Test iOS Google Sign-In configuration
+  static Future<bool> testIOSConfiguration() async {
+    if (kIsWeb || _googleSignIn == null) {
+      return false;
+    }
+
+    try {
+      if (Platform.isIOS) {
+        print('Testing iOS Google Sign-In configuration...');
+        
+        // Check if GoogleService-Info.plist is properly configured
+        final isSignedIn = await _googleSignIn!.isSignedIn();
+        print('iOS Google Sign-In state: ${isSignedIn ? 'Signed In' : 'Not Signed In'}');
+        
+        // Try to get current user
+        final currentUser = _googleSignIn!.currentUser;
+        if (currentUser != null) {
+          print('Current iOS user: ${currentUser.email}');
+          
+          // Test authentication
+          try {
+            final auth = await currentUser.authentication;
+            print('iOS auth tokens available: ${auth.idToken != null && auth.accessToken != null}');
+          } catch (authError) {
+            print('iOS auth token error: $authError');
+            return false;
+          }
+        }
+        
+        print('iOS Google Sign-In configuration test passed');
+        return true;
+      }
+    } catch (error) {
+      print('iOS configuration test failed: $error');
+      return false;
+    }
+    
+    return false;
   }
 }
