@@ -2,6 +2,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
+import 'dart:async';
 import 'supabase_config.dart';
 
 class GoogleAuthService {
@@ -92,19 +93,29 @@ class GoogleAuthService {
     }
 
     try {
-      // Ensure we start fresh
-      await _googleSignIn!.signOut();
+      // Check if already signed in and try to use existing session
+      GoogleSignInAccount? googleUser = _googleSignIn!.currentUser;
 
-      // Start Google Sign-In with timeout
-      print('Initiating Google Sign-In...');
-      final GoogleSignInAccount? googleUser = await _googleSignIn!
-          .signIn()
-          .timeout(
-            Duration(seconds: 30),
-            onTimeout: () {
-              throw Exception('Google Sign-In timed out. Please try again.');
-            },
-          );
+      if (googleUser == null) {
+        // Try silent sign-in first
+        print('Attempting silent sign-in...');
+        try {
+          googleUser = await _googleSignIn!.signInSilently();
+        } catch (silentError) {
+          print('Silent sign-in failed: $silentError');
+        }
+      }
+
+      if (googleUser == null) {
+        // Start interactive Google Sign-In with timeout
+        print('Initiating interactive Google Sign-In...');
+        googleUser = await _googleSignIn!.signIn().timeout(
+          Duration(seconds: 30),
+          onTimeout: () {
+            throw Exception('Google Sign-In timed out. Please try again.');
+          },
+        );
+      }
 
       if (googleUser == null) {
         print('User cancelled the sign-in');
@@ -254,12 +265,12 @@ class GoogleAuthService {
     }
   }
 
-  /// Supabase OAuth flow (fallback for web)
+  /// Supabase OAuth flow (for web platforms)
   static Future<AuthResponse?> _signInWithSupabaseOAuth() async {
-    print('Using Supabase OAuth flow...');
+    print('Using Supabase OAuth flow for web...');
 
     try {
-      // For web, use a more direct approach with better error handling
+      // For web, use Supabase OAuth with popup mode for better UX
       final bool success = await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: kIsWeb ? null : SupabaseConfig.oauthCallbackUrl,
@@ -272,9 +283,35 @@ class GoogleAuthService {
 
       print('OAuth flow initiated successfully');
 
-      // For web, the authentication state will be handled by Supabase auth state changes
-      // We don't need to wait here as the callback will handle the authentication
-      return null;
+      // For web, we need to wait for the auth state change
+      // Create a completer to wait for the authentication result
+      final completer = Completer<AuthResponse?>();
+
+      // Set up a temporary listener for auth state changes
+      late StreamSubscription authSubscription;
+
+      // Set a timeout for the OAuth flow
+      Timer(Duration(seconds: 60), () {
+        if (!completer.isCompleted) {
+          authSubscription.cancel();
+          completer.completeError(Exception('OAuth sign-in timed out'));
+        }
+      });
+
+      authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
+        // Only complete if we get a successful sign-in event
+        if (data.event == AuthChangeEvent.signedIn && data.session != null) {
+          if (!completer.isCompleted) {
+            authSubscription.cancel();
+            completer.complete(
+              AuthResponse(session: data.session, user: data.session!.user),
+            );
+          }
+        }
+      });
+
+      // Wait for the OAuth flow to complete
+      return await completer.future;
     } catch (error) {
       print('Supabase OAuth error: $error');
 
@@ -290,6 +327,8 @@ class GoogleAuthService {
         throw Exception(
           'Network error. Please check your internet connection.',
         );
+      } else if (errorMessage.contains('timeout')) {
+        throw Exception('Sign-in timed out. Please try again.');
       }
 
       throw Exception(
