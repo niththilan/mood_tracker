@@ -7,6 +7,7 @@ A Flutter-based mood tracking application with friends system and private messag
 - 🎭 **Mood Tracking**: Log your daily moods with notes and intensity levels
 - 👥 **Friends System**: Send friend requests, manage friendships
 - 💬 **Private Messaging**: Chat privately with friends
+- 🔔 **Message Notifications**: Real-time notification badges for unread messages
 - 🏠 **Community Chat**: Join public conversations
 - 📊 **Analytics**: Track mood patterns and insights
 - 🎯 **Goals**: Set and track personal goals

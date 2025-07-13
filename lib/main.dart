@@ -333,7 +333,7 @@ class MoodHomePage extends StatefulWidget {
 }
 
 class _MoodHomePageState extends State<MoodHomePage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   String? selectedMood;
   String? selectedMoodEmoji;
   TextEditingController noteController = TextEditingController();
@@ -344,6 +344,10 @@ class _MoodHomePageState extends State<MoodHomePage>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   final supabase = Supabase.instance.client;
+
+  // Message notification variables
+  int _unreadMessageCount = 0;
+  late RealtimeChannel? _messageChannel;
 
   // Enhanced mood options with better emojis and descriptions
   final List<Map<String, String>> moods = [
@@ -401,6 +405,12 @@ class _MoodHomePageState extends State<MoodHomePage>
 
     // Ensure user profile exists and load mood history
     _initializeApp();
+
+    // Initialize message notifications
+    _initializeMessageNotifications();
+
+    // Add app lifecycle observer
+    WidgetsBinding.instance.addObserver(this);
   }
 
   Future<void> _initializeApp() async {
@@ -428,6 +438,8 @@ class _MoodHomePageState extends State<MoodHomePage>
     _animationController.dispose();
     _fabAnimationController.dispose();
     noteController.dispose();
+    _messageChannel?.unsubscribe();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -2218,6 +2230,140 @@ class _MoodHomePageState extends State<MoodHomePage>
     );
   }
 
+  // Message notification methods
+  Future<void> _initializeMessageNotifications() async {
+    try {
+      final currentUser = supabase.auth.currentUser;
+      if (currentUser == null) return;
+
+      // Get initial unread message count
+      await _updateUnreadMessageCount();
+
+      // Set up real-time subscription for new chat messages
+      _messageChannel =
+          supabase
+              .channel('message_notifications_${currentUser.id}')
+              .onPostgresChanges(
+                event: PostgresChangeEvent.insert,
+                schema: 'public',
+                table: 'chat_messages',
+                callback: (payload) {
+                  // Increment unread count when new private message is received
+                  // We'll check if it's for the current user in the database query instead
+                  if (mounted) {
+                    // Refresh the unread count from database to be safe
+                    _updateUnreadMessageCount();
+                  }
+                },
+              )
+              .subscribe();
+    } catch (error) {
+      print('Error initializing message notifications: $error');
+    }
+  }
+
+  Future<void> _updateUnreadMessageCount() async {
+    try {
+      final currentUser = supabase.auth.currentUser;
+      if (currentUser == null) return;
+
+      // Get count of unread private messages
+      final response = await supabase
+          .from('chat_messages')
+          .select('id')
+          .eq('receiver_id', currentUser.id)
+          .eq('is_private', true)
+          .eq('is_read', false);
+
+      if (mounted) {
+        setState(() {
+          _unreadMessageCount = (response as List).length;
+        });
+      }
+    } catch (error) {
+      print('Error updating unread message count: $error');
+      // Fallback: set count to 0 if there's an error
+      if (mounted) {
+        setState(() {
+          _unreadMessageCount = 0;
+        });
+      }
+    }
+  }
+
+  // Refresh notification count (can be called when app resumes from background)
+  Future<void> refreshNotificationCount() async {
+    await _updateUnreadMessageCount();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Refresh notification count when app comes back to foreground
+      refreshNotificationCount();
+    }
+  }
+
+  void _markMessagesAsRead() async {
+    // Reset the local count immediately for instant UI feedback
+    if (mounted) {
+      setState(() {
+        _unreadMessageCount = 0;
+      });
+    }
+
+    // Mark messages as read in the database
+    try {
+      final currentUser = supabase.auth.currentUser;
+      if (currentUser == null) return;
+
+      await supabase
+          .from('chat_messages')
+          .update({'is_read': true})
+          .eq('receiver_id', currentUser.id)
+          .eq('is_private', true)
+          .eq('is_read', false);
+    } catch (error) {
+      print('Error marking messages as read: $error');
+    }
+  }
+
+  // Build notification badge widget
+  Widget _buildNotificationBadge({required Widget child}) {
+    if (_unreadMessageCount == 0) {
+      return child;
+    }
+
+    return Stack(
+      children: [
+        child,
+        Positioned(
+          right: 0,
+          top: 0,
+          child: Container(
+            padding: EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white, width: 1),
+            ),
+            constraints: BoxConstraints(minWidth: 16, minHeight: 16),
+            child: Text(
+              _unreadMessageCount > 99 ? '99+' : _unreadMessageCount.toString(),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   // Helper methods for responsive design
   double _getResponsiveEmojiSize(double screenWidth, bool isSelected) {
     if (screenWidth > 900) {
@@ -2289,20 +2435,27 @@ class _MoodHomePageState extends State<MoodHomePage>
               Container(
                 margin: EdgeInsets.only(right: 8),
                 child: IconButton(
-                  icon: Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.chat_bubble_outline,
-                      color: Theme.of(context).colorScheme.secondary,
+                  icon: _buildNotificationBadge(
+                    child: Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.chat_bubble_outline,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
                     ),
                   ),
-                  tooltip: 'Chat Options',
+                  tooltip:
+                      _unreadMessageCount > 0
+                          ? 'Chat Options (${_unreadMessageCount} unread)'
+                          : 'Chat Options',
                   onPressed: () {
                     HapticFeedback.lightImpact();
+                    // Mark messages as read when navigating to chat
+                    _markMessagesAsRead();
                     Navigator.push(
                       context,
                       PageRouteBuilder(
