@@ -7,7 +7,7 @@ class SupabaseConfig {
   static const String googleWebClientId =
       '631111437135-bvvu4b15elvmctbclkbmag856kke0nmq.apps.googleusercontent.com';
   static const String googleWebClientSecret =
-      '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'; // This should be your actual client secret, not a client ID
+      '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';
   static const String googleAndroidClientId =
       '631111437135-234lcguj55v09qd7415e7ohr2p55b58j.apps.googleusercontent.com';
   static const String googleIOSClientId =

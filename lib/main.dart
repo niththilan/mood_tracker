@@ -19,8 +19,8 @@ import 'mood_journal.dart';
 import 'profile_page.dart';
 import 'services/user_profile_service.dart';
 import 'services/theme_service.dart';
+import 'services/supabase_config.dart';
 import 'services/google_auth_service.dart';
-import 'services/auth_redirect_handler.dart';
 import 'widgets/theme_toggle_widget.dart';
 import 'widgets/color_theme_button.dart';
 import 'widgets/interactive_logo.dart';
@@ -48,9 +48,8 @@ void main() async {
 void _initializeSupabase() async {
   try {
     await Supabase.initialize(
-      url: 'https://xxasezacvotitccxnpaa.supabase.co',
-      anonKey:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4YXNlemFjdm90aXRjY3hucGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1ODE3MTIsImV4cCI6MjA2NDE1NzcxMn0.aUygIOPiI1HqFwKifXGYIolzeIQGbpjzGCC861LHRS4',
+      url: SupabaseConfig.supabaseUrl,
+      anonKey: SupabaseConfig.supabaseAnonKey,
       debug: false, // Disable debug logs for better performance
       authOptions: FlutterAuthClientOptions(
         authFlowType: AuthFlowType.pkce, // Use PKCE for better security
@@ -58,11 +57,8 @@ void _initializeSupabase() async {
       ),
     );
 
-    // Initialize Google Sign-In for web asynchronously
-    GoogleAuthService.initializeForWeb();
-
-    // Initialize Google Sign-In for iOS specifically
-    GoogleAuthService.initializeForIOS();
+    // Initialize Google Sign-In
+    GoogleAuthService.initialize();
   } catch (e) {
     Logger.error('Initialization error: $e');
     // Continue anyway - we'll handle errors in UI
@@ -144,7 +140,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
   bool _isInitialized = false;
   bool _onboardingCompleted = false;
   Session? _session;
-  bool _isHandlingAuthChange = false; // Prevent multiple simultaneous auth changes
+  bool _isHandlingAuthChange =
+      false; // Prevent multiple simultaneous auth changes
 
   @override
   void initState() {
@@ -174,11 +171,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
         // Listen to auth changes with better handling
         Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
-          // Use redirect handler to prevent loops
-          if (!AuthRedirectHandler.shouldHandleAuthChange(data.event)) {
-            return;
-          }
-
           // Prevent multiple simultaneous auth change handlers
           if (_isHandlingAuthChange) {
             print('Auth change already being handled, skipping...');
@@ -186,7 +178,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
           }
 
           _isHandlingAuthChange = true;
-          AuthRedirectHandler.startHandling();
 
           try {
             if (mounted) {
@@ -194,7 +185,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 _session = data.session;
               });
 
-              final userEmail = data.session != null ? data.session!.user.email ?? 'none' : 'none';
+              final userEmail =
+                  data.session != null
+                      ? data.session!.user.email ?? 'none'
+                      : 'none';
               print('Auth state change: ${data.event}, user: $userEmail');
 
               // Handle sign out event explicitly
@@ -203,7 +197,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 setState(() {
                   _session = null;
                 });
-                AuthRedirectHandler.reset(); // Reset handler on sign out
                 return;
               }
 
@@ -245,7 +238,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
             print('Error in auth state change handler: $e');
           } finally {
             _isHandlingAuthChange = false;
-            AuthRedirectHandler.finishHandling();
           }
         });
 
