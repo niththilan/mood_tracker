@@ -7,7 +7,7 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:631111437135:android:mood_tracker_app_id",
+        "mobilesdk_app_id": "1:631111437135:android:aee68c2fac5e1234",
         "android_client_info": {
           "package_name": "com.example.mood_tracker"
         }
@@ -18,7 +18,7 @@
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.mood_tracker",
-            "certificate_hash": "SHA1_CERTIFICATE_HASH"
+            "certificate_hash": "29:4E:13:7C:8A:F1:84:B9:A1:2D:09:18:73:13:39:A5:05:2A:B8:2A"
           }
         },
         {
@@ -28,7 +28,7 @@
       ],
       "api_key": [
         {
-          "current_key": "YOUR_ANDROID_API_KEY"
+          "current_key": "AIzaSyDxKGm2s7V9qY3HwKmN8L1PzRtUvB6XqE4"
         }
       ],
       "services": {

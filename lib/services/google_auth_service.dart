@@ -177,12 +177,27 @@ class GoogleAuthService {
       try {
         await _googleSignIn!.signOut();
         await Future.delayed(
-          Duration(milliseconds: Platform.isAndroid ? 2000 : 1000),
+          Duration(milliseconds: Platform.isAndroid ? 3000 : 1000),
         ); // Longer pause for Android to clear state properly
       } catch (e) {
         // Ignore sign out errors
         if (kDebugMode) {
           print('Note: Could not clear existing state: $e');
+        }
+      }
+
+      // Android-specific: Clear cache and disconnect completely
+      if (Platform.isAndroid) {
+        try {
+          await _googleSignIn!.disconnect();
+          await Future.delayed(Duration(milliseconds: 1000));
+          if (kDebugMode) {
+            print('Android: Disconnected from Google to ensure fresh auth');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Android: Could not disconnect (normal if not previously connected): $e');
+          }
         }
       }
 
@@ -221,7 +236,21 @@ class GoogleAuthService {
               'Android: Could not check Google Play Services availability: $e',
             );
           }
-          // Don't throw here, let the actual sign-in attempt provide a better error message
+          // For Android emulators, let's provide more specific error handling
+          final errorString = e.toString().toLowerCase();
+          if (errorString.contains('developer_error') || 
+              errorString.contains('api_not_available') ||
+              errorString.contains('sign_in_failed')) {
+            throw Exception(
+              'Google Sign-In setup issue detected:\n\n'
+              '🔧 For Android Emulator:\n'
+              '1. Make sure Google Play Services are installed\n'
+              '2. Check that SHA-1 fingerprint is correctly configured\n'
+              '3. Ensure the google-services.json file is up to date\n\n'
+              '💡 Current SHA-1: 29:4E:13:7C:8A:F1:84:B9:A1:2D:09:18:73:13:39:A5:05:2A:B8:2A\n'
+              'Make sure this is added to your Google Cloud Console.',
+            );
+          }
         }
       }
 
