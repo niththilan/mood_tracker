@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:html' as html;
 import 'dart:js' as js;
@@ -24,16 +23,26 @@ class DirectGoogleAuth {
       // Initialize Google Sign-In
       js.context.callMethod('eval', [
         '''
-        window.google.accounts.id.initialize({
-          client_id: "${SupabaseConfig.googleWebClientId}",
-          callback: handleCredentialResponse,
-          auto_select: false,
-          cancel_on_tap_outside: true
-        });
-        
-        window.handleCredentialResponse = function(response) {
-          window.googleCredentialResponse = response;
-        };
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+          // Define the callback function globally
+          window.handleCredentialResponse = function(response) {
+            console.log('Google credential received:', response);
+            window.googleCredentialResponse = response;
+          };
+          
+          // Initialize with proper client ID
+          window.google.accounts.id.initialize({
+            client_id: "${SupabaseConfig.googleWebClientId}",
+            callback: window.handleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true
+          });
+          
+          console.log('Google Identity Services initialized with client ID: ${SupabaseConfig.googleWebClientId}');
+        } else {
+          console.error('Google Identity Services not available');
+          throw new Error('Google Identity Services not loaded');
+        }
       ''',
       ]);
 
@@ -91,26 +100,16 @@ class DirectGoogleAuth {
         print('Starting direct Google Sign-In...');
       }
 
-      // Trigger Google Sign-In popup
-      js.context.callMethod('eval', [
-        '''
-        window.google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // Fallback to click-triggered sign-in
-            window.google.accounts.id.renderButton(
-              document.createElement('div'),
-              { theme: "outline", size: "large" }
-            );
-          }
-        });
-      ''',
-      ]);
+      // Clear any existing credential response
+      js.context['googleCredentialResponse'] = null;
 
-      // Wait for credential response
-      final credential = await _waitForCredential();
+      // Create a more reliable sign-in approach
+      final credential = await _performDirectSignIn();
 
       if (credential == null) {
-        throw Exception('No credential received');
+        throw Exception(
+          'No credential received from Google. Please try again or use email/password sign-in.',
+        );
       }
 
       if (kDebugMode) {
@@ -124,7 +123,7 @@ class DirectGoogleAuth {
       );
 
       if (kDebugMode) {
-        print('Supabase sign-in successful');
+        print('Supabase sign-in successful: ${response.user?.email}');
       }
 
       return response;
@@ -132,37 +131,153 @@ class DirectGoogleAuth {
       if (kDebugMode) {
         print('Direct Google Sign-In error: $error');
       }
-      rethrow;
+
+      // Provide more specific error messages
+      final errorStr = error.toString().toLowerCase();
+      if (errorStr.contains('popup_blocked') || errorStr.contains('blocked')) {
+        throw Exception(
+          'Popup blocked. Please allow popups for this site and try again.',
+        );
+      } else if (errorStr.contains('network') ||
+          errorStr.contains('connection')) {
+        throw Exception(
+          'Network error. Please check your internet connection.',
+        );
+      } else if (errorStr.contains('timeout') ||
+          errorStr.contains('no credential')) {
+        throw Exception(
+          'Sign-in timed out. Please try again or use email/password.',
+        );
+      } else if (errorStr.contains('redirect_uri_mismatch')) {
+        throw Exception(
+          'Google OAuth configuration issue. Please use email/password sign-in instead.',
+        );
+      } else {
+        throw Exception(
+          'Google sign-in failed. Please try email/password instead.',
+        );
+      }
     }
   }
 
-  /// Wait for Google credential response
-  static Future<String?> _waitForCredential() async {
-    final completer = Completer<String?>();
+  /// Perform direct sign-in with improved method
+  static Future<String?> _performDirectSignIn() async {
+    try {
+      // Set up a promise-based approach for better reliability
+      js.context.callMethod('eval', [
+        '''
+        (async function() {
+          try {
+            if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+              throw new Error('Google Identity Services not available');
+            }
 
-    // Set up a timer to check for credential
-    Timer.periodic(Duration(milliseconds: 100), (timer) {
-      final response = js.context['googleCredentialResponse'];
+            console.log('Setting up Google Sign-In...');
 
-      if (response != null) {
-        timer.cancel();
-        final credential = response['credential'];
+            // Set up the callback with promise resolution
+            window.directSignInCallback = function(response) {
+              console.log('Direct sign-in credential received:', response);
+              window.directSignInResult = response.credential;
+              window.directSignInComplete = true;
+            };
 
-        // Clear the response
-        js.context['googleCredentialResponse'] = null;
+            // Re-initialize with the direct callback
+            window.google.accounts.id.initialize({
+              client_id: "${SupabaseConfig.googleWebClientId}",
+              callback: window.directSignInCallback,
+              auto_select: false,
+              cancel_on_tap_outside: false
+            });
 
-        completer.complete(credential);
+            // Method 1: Try One Tap prompt
+            console.log('Trying One Tap prompt...');
+            window.google.accounts.id.prompt((notification) => {
+              console.log('One Tap notification:', notification);
+              if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                console.log('One Tap not available, trying button method...');
+                
+                // Method 2: Create and auto-click button
+                setTimeout(() => {
+                  try {
+                    const container = document.createElement('div');
+                    container.style.position = 'fixed';
+                    container.style.left = '-9999px';
+                    container.style.top = '-9999px';
+                    document.body.appendChild(container);
+
+                    window.google.accounts.id.renderButton(container, {
+                      theme: "outline",
+                      size: "large",
+                      type: "standard",
+                      text: "signin_with",
+                      shape: "rectangular"
+                    });
+
+                    // Auto-click after a short delay
+                    setTimeout(() => {
+                      const button = container.querySelector('[role="button"]');
+                      if (button) {
+                        console.log('Auto-clicking Google Sign-In button...');
+                        button.click();
+                      } else {
+                        console.log('Button not found, trying alternative approach...');
+                        // Method 3: Direct prompt call
+                        window.google.accounts.id.prompt();
+                      }
+                    }, 100);
+                  } catch (e) {
+                    console.error('Button method error:', e);
+                  }
+                }, 100);
+              }
+            });
+
+          } catch (error) {
+            console.error('Direct sign-in setup error:', error);
+            window.directSignInError = error.message;
+            window.directSignInComplete = true;
+          }
+        })();
+      ''',
+      ]);
+
+      // Wait for the sign-in to complete with a reasonable timeout
+      var attempts = 0;
+      const maxAttempts = 150; // 15 seconds total
+
+      while (attempts < maxAttempts) {
+        await Future.delayed(Duration(milliseconds: 100));
+
+        final isComplete = js.context['directSignInComplete'];
+        if (isComplete == true) {
+          final result = js.context['directSignInResult'];
+          final error = js.context['directSignInError'];
+
+          // Clean up
+          js.context['directSignInComplete'] = null;
+          js.context['directSignInResult'] = null;
+          js.context['directSignInError'] = null;
+
+          if (error != null) {
+            throw Exception('Google Sign-In error: $error');
+          }
+
+          if (result != null) {
+            return result.toString();
+          }
+          break;
+        }
+
+        attempts++;
       }
-    });
 
-    // Timeout after 30 seconds
-    Timer(Duration(seconds: 30), () {
-      if (!completer.isCompleted) {
-        completer.complete(null);
+      return null; // Timeout
+    } catch (error) {
+      if (kDebugMode) {
+        print('Direct sign-in performance error: $error');
       }
-    });
-
-    return completer.future;
+      return null;
+    }
   }
 
   /// Show Google Sign-In button

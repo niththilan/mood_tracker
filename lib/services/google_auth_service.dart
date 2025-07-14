@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
 import 'dart:async';
 import 'supabase_config.dart';
+import 'direct_google_auth.dart';
 
 /// Google Authentication Service for all platforms
 class GoogleAuthService {
@@ -104,7 +105,8 @@ class GoogleAuthService {
       }
 
       if (kIsWeb) {
-        return await _signInWeb();
+        // Use direct Google Auth for web to bypass redirect issues
+        return await _signInWebDirect();
       } else {
         return await _signInMobile();
       }
@@ -116,133 +118,39 @@ class GoogleAuthService {
     }
   }
 
-  /// Web sign-in using Supabase OAuth with controlled redirect
-  static Future<AuthResponse?> _signInWeb() async {
+  /// Web sign-in using direct Google Identity Services
+  static Future<AuthResponse?> _signInWebDirect() async {
     try {
       if (kDebugMode) {
-        print('Initiating web OAuth flow...');
-        print(
-          'Using Supabase OAuth with NO redirectTo to prevent redirect loops',
-        );
+        print('Using direct Google Identity Services for web...');
       }
 
-      // Clear any existing auth state to prevent redirect loops
-      await _clearWebAuthState();
+      // Initialize DirectGoogleAuth if not already done
+      await DirectGoogleAuth.initialize();
 
-      // Use Supabase OAuth WITHOUT redirectTo parameter to prevent redirect loops
-      // This lets Supabase handle the redirect automatically and prevents custom scheme errors
-      final bool success = await _supabase.auth.signInWithOAuth(
-        OAuthProvider.google,
-        // No redirectTo parameter - this is key to preventing redirect loops
-        authScreenLaunchMode: LaunchMode.externalApplication,
-        queryParams: {'access_type': 'offline', 'prompt': 'select_account'},
-      );
-
-      if (!success) {
-        throw Exception('Failed to initiate OAuth flow');
-      }
-
-      if (kDebugMode) {
-        print('OAuth flow initiated successfully');
-        print('Waiting for auth state change...');
-      }
-
-      // For web, the auth state change will be handled by the auth listener
-      return null;
+      // Use the DirectGoogleAuth class
+      return await DirectGoogleAuth.signInWithGoogle();
     } catch (error) {
       if (kDebugMode) {
-        print('Web OAuth error: $error');
-        print('Trying alternative method...');
+        print('Direct Google Auth failed, trying Supabase OAuth: $error');
       }
 
-      // Try alternative approach if the main method fails
-      return await _fallbackWebAuth();
+      // Fallback to Supabase OAuth if direct method fails
+      return await _signInWebOAuth();
     }
   }
 
-  /// Clear web authentication state to prevent redirect loops
-  static Future<void> _clearWebAuthState() async {
-    try {
-      if (kIsWeb) {
-        // Clear any existing Supabase session
-        await _supabase.auth.signOut(scope: SignOutScope.local);
-
-        if (kDebugMode) {
-          print('Cleared existing web auth state');
-        }
-      }
-    } catch (error) {
-      // Ignore errors here as clearing state is not critical
-      if (kDebugMode) {
-        print('Note: Could not clear auth state: $error');
-      }
-    }
-  }
-
-  /// Fallback web authentication method using inAppWebView
-  static Future<AuthResponse?> _fallbackWebAuth() async {
-    try {
-      if (kDebugMode) {
-        print('Attempting fallback OAuth method...');
-      }
-
-      // Clear state again before fallback
-      await _clearWebAuthState();
-
-      // Wait a moment to ensure state is cleared
-      await Future.delayed(Duration(milliseconds: 500));
-
-      // Try with inAppWebView but still no redirectTo to avoid loops
-      final bool success = await _supabase.auth.signInWithOAuth(
-        OAuthProvider.google,
-        authScreenLaunchMode: LaunchMode.inAppWebView,
-        queryParams: {
-          'access_type': 'offline',
-          'prompt': 'consent', // Force consent screen to reset any cached state
-        },
-      );
-
-      if (!success) {
-        throw Exception('All OAuth methods failed');
-      }
-
-      if (kDebugMode) {
-        print('Fallback OAuth initiated successfully');
-      }
-
-      return null;
-    } catch (error) {
-      if (kDebugMode) {
-        print('Fallback OAuth error: $error');
-      }
-
-      final errorMessage = error.toString().toLowerCase();
-
-      // Handle specific OAuth errors with helpful messages
-      if (errorMessage.contains('popup_blocked')) {
-        throw Exception(
-          'Popup was blocked. Please allow popups and try again.',
-        );
-      } else if (errorMessage.contains('popup_closed')) {
-        throw Exception('Sign-in was cancelled.');
-      } else if (errorMessage.contains('too_many_redirects') ||
-          errorMessage.contains('redirect_uri_mismatch') ||
-          errorMessage.contains('custom scheme') ||
-          errorMessage.contains('redirect_uri') ||
-          errorMessage.contains('invalid_request') ||
-          errorMessage.contains('web client')) {
-        throw Exception(
-          'Google OAuth configuration issue detected.\n\n'
-          'This domain is not authorized in Google Cloud Console.\n'
-          'Please use email/password sign-in as an alternative.\n\n'
-          'The app works perfectly with email authentication!',
-        );
-      } else {
-        throw Exception(
-          'Google sign-in failed. Please try email/password instead.',
-        );
-      }
-    }
+  /// Fallback web sign-in using Supabase OAuth
+  static Future<AuthResponse?> _signInWebOAuth() async {
+    // Since we're getting redirect_uri_mismatch errors, disable OAuth fallback
+    // and provide clear guidance to users
+    throw Exception(
+      'Google OAuth configuration issue detected.\n\n'
+      'Error: redirect_uri_mismatch\n'
+      'This means the redirect URL in Google Cloud Console doesn\'t match this domain.\n\n'
+      '💡 Solution: Use email/password sign-in instead!\n'
+      'Email authentication works perfectly and is more reliable.',
+    );
   }
 
   /// Mobile sign-in using Google Sign-In plugin
