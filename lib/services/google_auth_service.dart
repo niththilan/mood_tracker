@@ -170,14 +170,15 @@ class GoogleAuthService {
         print('Starting mobile Google Sign-In...');
         print('Client ID: ${_getClientId()}');
         print('Platform: ${Platform.operatingSystem}');
+        print('Package Name: com.example.mood_tracker');
       }
 
-      // Clear any existing sign-in state first (especially important for iOS simulator)
+      // Android-specific: Clear any existing sign-in state first
       try {
         await _googleSignIn!.signOut();
         await Future.delayed(
-          Duration(milliseconds: 1000),
-        ); // Longer pause for iOS
+          Duration(milliseconds: Platform.isAndroid ? 2000 : 1000),
+        ); // Longer pause for Android to clear state properly
       } catch (e) {
         // Ignore sign out errors
         if (kDebugMode) {
@@ -199,6 +200,28 @@ class GoogleAuthService {
               'iOS: Could not disconnect (normal if not previously connected): $e',
             );
           }
+        }
+      }
+
+      // Android-specific: Check for Play Services availability
+      if (Platform.isAndroid) {
+        try {
+          // Try to check if Google Play Services are available
+          final canAccessGoogleSignIn = await _googleSignIn!.canAccessScopes([
+            'email',
+          ]);
+          if (kDebugMode) {
+            print(
+              'Android: Can access Google Sign-In scopes: $canAccessGoogleSignIn',
+            );
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print(
+              'Android: Could not check Google Play Services availability: $e',
+            );
+          }
+          // Don't throw here, let the actual sign-in attempt provide a better error message
         }
       }
 
@@ -357,9 +380,15 @@ class GoogleAuthService {
           'Sign-in popup was blocked or closed. Please try again.',
         );
       } else {
-        throw Exception(
-          'Google sign-in failed: ${error.toString()}. Please try again or use email/password instead.',
-        );
+        // Android-specific error handling
+        if (!kIsWeb && Platform.isAndroid) {
+          final androidSolution = _getAndroidErrorSolution(errorString);
+          throw Exception('$androidSolution\n\nOriginal error: $error');
+        } else {
+          throw Exception(
+            'Google sign-in failed: ${error.toString()}. Please try again or use email/password instead.',
+          );
+        }
       }
     }
   }
@@ -534,5 +563,85 @@ class GoogleAuthService {
   /// Initialize for web (legacy method for compatibility)
   static Future<void> initializeForWeb() async {
     return initialize();
+  }
+
+  /// Android-specific error handling and debugging
+  static String _getAndroidErrorSolution(String error) {
+    final errorLower = error.toLowerCase();
+
+    if (errorLower.contains('developer_error') || errorLower.contains('10')) {
+      return '''
+🔧 ANDROID FIX: Developer Error (Code 10)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+This usually means your app's SHA-1 certificate fingerprint 
+is not registered in the Google Cloud Console.
+
+IMMEDIATE STEPS:
+1. Run: ./get_sha1.sh
+2. Copy the SHA-1 fingerprint
+3. Go to: Firebase Console > Project Settings > Your Apps
+4. Click on Android app > Add Fingerprint
+5. Download new google-services.json
+6. Replace android/app/google-services.json
+7. Clean and rebuild: flutter clean && flutter build apk
+
+📱 Test on a real device, not emulator!
+''';
+    }
+
+    if (errorLower.contains('network_error') || errorLower.contains('7')) {
+      return '''
+🌐 ANDROID FIX: Network Error (Code 7)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Check your network connection and device settings.
+
+STEPS TO TRY:
+1. Ensure device has internet connection
+2. Check if Google Play Services is updated
+3. Try on different network (WiFi vs Mobile)
+4. Clear Google Play Services cache
+5. Restart device and try again
+''';
+    }
+
+    if (errorLower.contains('sign_in_required') || errorLower.contains('4')) {
+      return '''
+🔐 ANDROID FIX: Sign-in Required (Code 4)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The user needs to sign in again.
+
+STEPS:
+1. Clear app data/cache
+2. Sign out completely and try again
+3. Check Google account is added to device
+''';
+    }
+
+    if (errorLower.contains('play_services') ||
+        errorLower.contains('resolution_required')) {
+      return '''
+🔧 ANDROID FIX: Google Play Services Issue
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Google Play Services needs to be updated or is not available.
+
+STEPS:
+1. Update Google Play Services from Play Store
+2. Restart device
+3. Test on a different device
+4. Ensure device has Google services (not Chinese ROMs)
+''';
+    }
+
+    return '''
+🔧 ANDROID GENERAL TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Run: ./debug_android_auth.sh
+2. Check SHA-1 certificate is registered
+3. Verify google-services.json is up to date
+4. Test on real device with Google Play Services
+5. Check app logs: flutter logs
+
+For immediate help, use email/password sign-in instead!
+''';
   }
 }
