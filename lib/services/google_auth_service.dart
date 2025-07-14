@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
 import 'dart:async';
 import 'supabase_config.dart';
-import 'simplified_google_auth.dart';
+// Conditional import for web-only simplified auth
+import 'simplified_google_auth.dart'
+    if (dart.library.io) 'simplified_google_auth_stub.dart';
 
 /// Google Authentication Service for all platforms
 class GoogleAuthService {
@@ -28,12 +30,15 @@ class GoogleAuthService {
           clientId: clientId,
           // Add server client ID for iOS if available
           serverClientId: kIsWeb ? null : SupabaseConfig.googleWebClientId,
+          // Force account selection on iOS to avoid cached token issues
+          forceCodeForRefreshToken: true,
         );
 
         if (kDebugMode) {
           print('Google Sign-In initialized for mobile platform');
           print('Client ID: $clientId');
           print('Server Client ID: ${SupabaseConfig.googleWebClientId}');
+          print('Platform: ${Platform.operatingSystem}');
         }
 
         // Test the configuration
@@ -126,7 +131,13 @@ class GoogleAuthService {
       }
 
       // Use the simplified Google auth (works with any port)
-      return await SimplifiedGoogleAuth.signInWithGoogle();
+      if (kIsWeb) {
+        return await SimplifiedGoogleAuth.signInWithGoogle();
+      } else {
+        throw UnsupportedError(
+          'Web authentication not available on mobile platforms',
+        );
+      }
     } catch (error) {
       if (kDebugMode) {
         print('Simplified Google Auth failed: $error');
@@ -158,16 +169,36 @@ class GoogleAuthService {
       if (kDebugMode) {
         print('Starting mobile Google Sign-In...');
         print('Client ID: ${_getClientId()}');
+        print('Platform: ${Platform.operatingSystem}');
       }
 
-      // Clear any existing sign-in state first
+      // Clear any existing sign-in state first (especially important for iOS simulator)
       try {
         await _googleSignIn!.signOut();
-        await Future.delayed(Duration(milliseconds: 500)); // Brief pause
+        await Future.delayed(
+          Duration(milliseconds: 1000),
+        ); // Longer pause for iOS
       } catch (e) {
         // Ignore sign out errors
         if (kDebugMode) {
           print('Note: Could not clear existing state: $e');
+        }
+      }
+
+      // iOS-specific: Disconnect completely to ensure fresh authentication
+      if (Platform.isIOS) {
+        try {
+          await _googleSignIn!.disconnect();
+          await Future.delayed(Duration(milliseconds: 500));
+          if (kDebugMode) {
+            print('iOS: Disconnected from Google to ensure fresh auth');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print(
+              'iOS: Could not disconnect (normal if not previously connected): $e',
+            );
+          }
         }
       }
 
@@ -186,9 +217,32 @@ class GoogleAuthService {
         print('Getting authentication details...');
       }
 
-      // Get authentication details
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      // Get authentication details with retry for iOS
+      GoogleSignInAuthentication? googleAuth;
+      int authRetries = 0;
+      const maxAuthRetries = 3;
+
+      while (authRetries < maxAuthRetries) {
+        try {
+          googleAuth = await googleUser.authentication;
+          break;
+        } catch (e) {
+          authRetries++;
+          if (authRetries >= maxAuthRetries) {
+            throw Exception(
+              'Failed to get authentication details after $maxAuthRetries attempts: $e',
+            );
+          }
+          if (kDebugMode) {
+            print('Auth attempt $authRetries failed, retrying...: $e');
+          }
+          await Future.delayed(Duration(seconds: 1));
+        }
+      }
+
+      if (googleAuth == null) {
+        throw Exception('Failed to obtain authentication details');
+      }
 
       if (googleAuth.idToken == null) {
         if (kDebugMode) {
@@ -198,10 +252,14 @@ class GoogleAuthService {
         // Try to refresh the authentication
         try {
           await googleUser.clearAuthCache();
+          await Future.delayed(Duration(milliseconds: 500));
           final refreshedAuth = await googleUser.authentication;
           if (refreshedAuth.idToken == null) {
-            throw Exception('Unable to obtain ID token from Google');
+            throw Exception(
+              'Unable to obtain ID token from Google after refresh',
+            );
           }
+          googleAuth = refreshedAuth;
           if (kDebugMode) {
             print('Successfully refreshed authentication');
           }
@@ -214,6 +272,8 @@ class GoogleAuthService {
 
       if (kDebugMode) {
         print('Google tokens obtained successfully');
+        print('ID Token length: ${googleAuth.idToken?.length ?? 0}');
+        print('Access Token length: ${googleAuth.accessToken?.length ?? 0}');
         print('Authenticating with Supabase...');
       }
 
@@ -240,10 +300,10 @@ class GoogleAuthService {
 
           if (kDebugMode) {
             print(
-              'Supabase auth attempt $retryCount failed, retrying in 1 second...',
+              'Supabase auth attempt $retryCount failed, retrying in 2 seconds...: $supabaseError',
             );
           }
-          await Future.delayed(Duration(seconds: 1));
+          await Future.delayed(Duration(seconds: 2));
         }
       }
 
@@ -259,13 +319,15 @@ class GoogleAuthService {
     } catch (error) {
       if (kDebugMode) {
         print('Mobile Google Sign-In error: $error');
+        print('Error type: ${error.runtimeType}');
       }
 
       final errorString = error.toString().toLowerCase();
 
       if (errorString.contains('sign_in_canceled') ||
           errorString.contains('user_canceled') ||
-          errorString.contains('cancelled')) {
+          errorString.contains('cancelled') ||
+          errorString.contains('user_cancelled')) {
         return null; // User cancelled
       } else if (errorString.contains('network_error') ||
           errorString.contains('network error')) {
@@ -279,7 +341,7 @@ class GoogleAuthService {
       } else if (errorString.contains('invalid_client') ||
           errorString.contains('configuration')) {
         throw Exception(
-          'Google Sign-In configuration error. Please contact support.',
+          'Google Sign-In configuration error. Please restart the app and try again.',
         );
       } else if (errorString.contains('id token')) {
         throw Exception(
@@ -289,9 +351,14 @@ class GoogleAuthService {
         throw Exception(
           'Server authentication error. Please try again or use email/password.',
         );
+      } else if (errorString.contains('popup_closed_by_user') ||
+          errorString.contains('popup_blocked')) {
+        throw Exception(
+          'Sign-in popup was blocked or closed. Please try again.',
+        );
       } else {
         throw Exception(
-          'Google sign-in failed. Please try again or use email/password instead.',
+          'Google sign-in failed: ${error.toString()}. Please try again or use email/password instead.',
         );
       }
     }

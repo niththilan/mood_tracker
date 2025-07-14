@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'services/auth_service.dart';
 import 'services/google_auth_service.dart';
 import 'forgot_password_page.dart';
+import 'widgets/google_auth_debug_widget.dart';
 
 class AuthPage extends StatefulWidget {
   @override
@@ -537,6 +538,22 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                           textAlign: TextAlign.center,
                         ),
                       ),
+
+                      // Debug Google Auth Button (only in debug mode)
+                      if (kDebugMode) ...[
+                        const SizedBox(height: 16),
+                        OutlinedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => GoogleAuthDebugWidget(),
+                              ),
+                            );
+                          },
+                          child: Text('🔧 Debug Google Auth'),
+                        ),
+                      ],
 
                       const SizedBox(height: 32),
 

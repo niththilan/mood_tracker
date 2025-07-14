@@ -57,8 +57,14 @@ void _initializeSupabase() async {
       ),
     );
 
-    // Initialize Google Sign-In
-    GoogleAuthService.initialize();
+    // Initialize Google Sign-In with proper error handling
+    try {
+      await GoogleAuthService.initialize();
+      Logger.info('Google Auth Service initialized successfully');
+    } catch (googleError) {
+      Logger.error('Google Auth Service initialization failed: $googleError');
+      // Continue anyway - user can still use email/password
+    }
   } catch (e) {
     Logger.error('Initialization error: $e');
     // Continue anyway - we'll handle errors in UI
