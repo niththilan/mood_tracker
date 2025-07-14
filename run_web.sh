@@ -5,7 +5,9 @@
 
 echo "🚀 Starting Mood Tracker on fixed port 8080..."
 echo "📍 URL: http://localhost:8080"
-echo "🔧 Configure Google Cloud Console with: http://localhost:8080"
+echo "🔧 Configure Google Cloud Console with:"
+echo "   Origins: http://localhost:8080"
+echo "   Redirect: http://localhost:8080/auth/callback"
 echo ""
 
-flutter run -d chrome --web-port=8080
+flutter run -d chrome --web-hostname=localhost --web-port=8080

@@ -17,16 +17,18 @@ class SupabaseConfig {
   static const String oauthCallbackUrl =
       'https://xxasezacvotitccxnpaa.supabase.co/auth/v1/callback';
 
+  // Fixed localhost development URLs for Google OAuth
+  static const String localhostRedirectUrl = 'http://localhost:8080';
+  static const String localhostCallbackUrl =
+      'http://localhost:8080/auth/callback';
+
   // Local development callback (if needed)
   static String get webRedirectUrl {
-    // Get current host for development
+    // Always use fixed localhost:8080 for development
     if (kIsWeb) {
       final host = Uri.base.host;
-      final port = Uri.base.port;
-      final scheme = Uri.base.scheme;
-
       if (host == 'localhost' || host == '127.0.0.1') {
-        return '$scheme://$host:$port/auth.html';
+        return localhostRedirectUrl;
       }
     }
     return oauthCallbackUrl;
@@ -35,11 +37,27 @@ class SupabaseConfig {
   // Get the appropriate redirect URL based on environment
   static String getRedirectUrl() {
     if (kIsWeb) {
-      // For web, always use Supabase callback to avoid configuration issues
+      final host = Uri.base.host;
+      if (host == 'localhost' || host == '127.0.0.1') {
+        // Use fixed localhost URL for development
+        return localhostCallbackUrl;
+      }
+      // For production web, use Supabase callback
       return oauthCallbackUrl;
     } else {
       // For mobile, use deep linking
       return 'com.moodtracker.app://auth';
     }
+  }
+
+  // Get the current app URL
+  static String getCurrentUrl() {
+    if (kIsWeb) {
+      final host = Uri.base.host;
+      if (host == 'localhost' || host == '127.0.0.1') {
+        return localhostRedirectUrl;
+      }
+    }
+    return 'https://your-production-domain.com';
   }
 }

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
 import 'dart:async';
 import 'supabase_config.dart';
-import 'direct_google_auth.dart';
+import 'simplified_google_auth.dart';
 
 /// Google Authentication Service for all platforms
 class GoogleAuthService {
@@ -118,40 +118,30 @@ class GoogleAuthService {
     }
   }
 
-  /// Web sign-in using direct Google Identity Services
+  /// Web sign-in using simplified Google Identity Services
   static Future<AuthResponse?> _signInWebDirect() async {
     try {
       if (kDebugMode) {
-        print('Using direct Google Identity Services for web...');
+        print('Using simplified Google Identity Services for web...');
       }
 
-      // Initialize DirectGoogleAuth if not already done
-      await DirectGoogleAuth.initialize();
-
-      // Use the DirectGoogleAuth class
-      return await DirectGoogleAuth.signInWithGoogle();
+      // Use the simplified Google auth (works with any port)
+      return await SimplifiedGoogleAuth.signInWithGoogle();
     } catch (error) {
       if (kDebugMode) {
-        print('Direct Google Auth failed, trying Supabase OAuth: $error');
+        print('Simplified Google Auth failed: $error');
       }
 
-      // Fallback to Supabase OAuth if direct method fails
-      return await _signInWebOAuth();
+      // Provide clear error message to user
+      throw Exception(
+        'Google Sign-In failed: $error\n\n'
+        '💡 Alternative: Use email/password sign-in instead!\n'
+        'Email authentication is more reliable.',
+      );
     }
   }
 
   /// Fallback web sign-in using Supabase OAuth
-  static Future<AuthResponse?> _signInWebOAuth() async {
-    // Since we're getting redirect_uri_mismatch errors, disable OAuth fallback
-    // and provide clear guidance to users
-    throw Exception(
-      'Google OAuth configuration issue detected.\n\n'
-      'Error: redirect_uri_mismatch\n'
-      'This means the redirect URL in Google Cloud Console doesn\'t match this domain.\n\n'
-      '💡 Solution: Use email/password sign-in instead!\n'
-      'Email authentication works perfectly and is more reliable.',
-    );
-  }
 
   /// Mobile sign-in using Google Sign-In plugin
   static Future<AuthResponse?> _signInMobile() async {
