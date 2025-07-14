@@ -13,10 +13,10 @@ class SupabaseConfig {
   static const String googleAndroidClientId =
       '631111437135-234lcguj55v09qd7415e7ohr2p55b58j.apps.googleusercontent.com';
   static const String googleIOSClientId =
-      '631111437135-jg42a9hahfchrrfhva4mbb0bddaq5g5f.apps.googleusercontent.com';  // OAuth Callback URLs - these MUST match your Google Cloud Console settings
+      '631111437135-jg42a9hahfchrrfhva4mbb0bddaq5g5f.apps.googleusercontent.com'; // OAuth Callback URLs - these MUST match your Google Cloud Console settings
   static const String oauthCallbackUrl =
       'https://xxasezacvotitccxnpaa.supabase.co/auth/v1/callback';
-  
+
   // Local development callback (if needed)
   static String get webRedirectUrl {
     // Get current host for development
@@ -24,14 +24,14 @@ class SupabaseConfig {
       final host = Uri.base.host;
       final port = Uri.base.port;
       final scheme = Uri.base.scheme;
-      
+
       if (host == 'localhost' || host == '127.0.0.1') {
         return '$scheme://$host:$port/auth.html';
       }
     }
     return oauthCallbackUrl;
   }
-  
+
   // Get the appropriate redirect URL based on environment
   static String getRedirectUrl() {
     if (kIsWeb) {

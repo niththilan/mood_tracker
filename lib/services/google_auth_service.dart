@@ -17,23 +17,46 @@ class GoogleAuthService {
     try {
       if (!kIsWeb) {
         // Mobile platforms (iOS/Android)
+        final clientId = _getClientId();
+        if (clientId == null || clientId.isEmpty) {
+          throw Exception('No client ID available for mobile platform');
+        }
+
         _googleSignIn = GoogleSignIn(
-          scopes: ['email', 'profile'],
-          clientId: _getClientId(),
+          scopes: ['email', 'profile', 'openid'],
+          clientId: clientId,
+          // Add server client ID for iOS if available
+          serverClientId: kIsWeb ? null : SupabaseConfig.googleWebClientId,
         );
 
         if (kDebugMode) {
           print('Google Sign-In initialized for mobile platform');
-          print('Client ID: ${_getClientId()}');
+          print('Client ID: $clientId');
+          print('Server Client ID: ${SupabaseConfig.googleWebClientId}');
         }
 
-        // Try silent sign-in to restore previous session
+        // Test the configuration
         try {
-          await _googleSignIn!.signInSilently();
+          final isSignedIn = await _googleSignIn!.isSignedIn();
+          if (kDebugMode) {
+            print('Initial sign-in status: $isSignedIn');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Could not check initial sign-in status: $e');
+          }
+        }
+
+        // Try silent sign-in to restore previous session (only if user was signed in before)
+        try {
+          final silentUser = await _googleSignIn!.signInSilently();
+          if (silentUser != null && kDebugMode) {
+            print('Silent sign-in successful: ${silentUser.email}');
+          }
         } catch (e) {
           // Silent sign-in failure is expected if user hasn't signed in before
           if (kDebugMode) {
-            print('Silent sign-in not available: $e');
+            print('Silent sign-in not available (normal for first use): $e');
           }
         }
       } else {
@@ -41,12 +64,14 @@ class GoogleAuthService {
         if (kDebugMode) {
           print('Web platform detected - using Supabase OAuth');
           print('Web Client ID: ${SupabaseConfig.googleWebClientId}');
+          print('Supabase URL: ${SupabaseConfig.supabaseUrl}');
         }
       }
     } catch (error) {
       if (kDebugMode) {
         print('Google Sign-In initialization error: $error');
       }
+      // Don't throw the error - let the app continue but log the issue
     }
   }
 
@@ -96,15 +121,21 @@ class GoogleAuthService {
     try {
       if (kDebugMode) {
         print('Initiating web OAuth flow...');
-        print('Using Supabase OAuth with controlled redirect');
+        print(
+          'Using Supabase OAuth with NO redirectTo to prevent redirect loops',
+        );
       }
 
-      // Use Supabase OAuth but without specifying redirectTo to let Supabase handle it
-      // This prevents the "custom scheme" error
+      // Clear any existing auth state to prevent redirect loops
+      await _clearWebAuthState();
+
+      // Use Supabase OAuth WITHOUT redirectTo parameter to prevent redirect loops
+      // This lets Supabase handle the redirect automatically and prevents custom scheme errors
       final bool success = await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        // Let Supabase handle the redirect automatically
-        authScreenLaunchMode: LaunchMode.platformDefault,
+        // No redirectTo parameter - this is key to preventing redirect loops
+        authScreenLaunchMode: LaunchMode.externalApplication,
+        queryParams: {'access_type': 'offline', 'prompt': 'select_account'},
       );
 
       if (!success) {
@@ -113,7 +144,7 @@ class GoogleAuthService {
 
       if (kDebugMode) {
         print('OAuth flow initiated successfully');
-        print('Supabase will handle the redirect automatically');
+        print('Waiting for auth state change...');
       }
 
       // For web, the auth state change will be handled by the auth listener
@@ -121,7 +152,7 @@ class GoogleAuthService {
     } catch (error) {
       if (kDebugMode) {
         print('Web OAuth error: $error');
-        print('Trying fallback method...');
+        print('Trying alternative method...');
       }
 
       // Try alternative approach if the main method fails
@@ -129,21 +160,50 @@ class GoogleAuthService {
     }
   }
 
+  /// Clear web authentication state to prevent redirect loops
+  static Future<void> _clearWebAuthState() async {
+    try {
+      if (kIsWeb) {
+        // Clear any existing Supabase session
+        await _supabase.auth.signOut(scope: SignOutScope.local);
+
+        if (kDebugMode) {
+          print('Cleared existing web auth state');
+        }
+      }
+    } catch (error) {
+      // Ignore errors here as clearing state is not critical
+      if (kDebugMode) {
+        print('Note: Could not clear auth state: $error');
+      }
+    }
+  }
+
   /// Fallback web authentication method using inAppWebView
   static Future<AuthResponse?> _fallbackWebAuth() async {
     try {
       if (kDebugMode) {
-        print('Attempting fallback OAuth method with inAppWebView...');
+        print('Attempting fallback OAuth method...');
       }
 
-      // Try with inAppWebView to contain the OAuth flow
+      // Clear state again before fallback
+      await _clearWebAuthState();
+
+      // Wait a moment to ensure state is cleared
+      await Future.delayed(Duration(milliseconds: 500));
+
+      // Try with inAppWebView but still no redirectTo to avoid loops
       final bool success = await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
         authScreenLaunchMode: LaunchMode.inAppWebView,
+        queryParams: {
+          'access_type': 'offline',
+          'prompt': 'consent', // Force consent screen to reset any cached state
+        },
       );
 
       if (!success) {
-        throw Exception('Fallback OAuth method also failed');
+        throw Exception('All OAuth methods failed');
       }
 
       if (kDebugMode) {
@@ -165,17 +225,22 @@ class GoogleAuthService {
         );
       } else if (errorMessage.contains('popup_closed')) {
         throw Exception('Sign-in was cancelled.');
-      } else if (errorMessage.contains('custom scheme') ||
+      } else if (errorMessage.contains('too_many_redirects') ||
+          errorMessage.contains('redirect_uri_mismatch') ||
+          errorMessage.contains('custom scheme') ||
           errorMessage.contains('redirect_uri') ||
           errorMessage.contains('invalid_request') ||
           errorMessage.contains('web client')) {
         throw Exception(
           'Google OAuth configuration issue detected.\n\n'
-          'The Google Cloud Console settings for this app need to be updated.\n'
-          'Please use email/password sign-in as an alternative.',
+          'This domain is not authorized in Google Cloud Console.\n'
+          'Please use email/password sign-in as an alternative.\n\n'
+          'The app works perfectly with email authentication!',
         );
       } else {
-        throw Exception('Google sign-in failed. Please try email/password instead.');
+        throw Exception(
+          'Google sign-in failed. Please try email/password instead.',
+        );
       }
     }
   }
@@ -183,12 +248,29 @@ class GoogleAuthService {
   /// Mobile sign-in using Google Sign-In plugin
   static Future<AuthResponse?> _signInMobile() async {
     if (_googleSignIn == null) {
-      throw Exception('Google Sign-In not initialized for mobile platform');
+      await initialize(); // Try to initialize if not done yet
+      if (_googleSignIn == null) {
+        throw Exception(
+          'Google Sign-In could not be initialized for mobile platform',
+        );
+      }
     }
 
     try {
       if (kDebugMode) {
         print('Starting mobile Google Sign-In...');
+        print('Client ID: ${_getClientId()}');
+      }
+
+      // Clear any existing sign-in state first
+      try {
+        await _googleSignIn!.signOut();
+        await Future.delayed(Duration(milliseconds: 500)); // Brief pause
+      } catch (e) {
+        // Ignore sign out errors
+        if (kDebugMode) {
+          print('Note: Could not clear existing state: $e');
+        }
       }
 
       // Sign in with Google
@@ -203,6 +285,7 @@ class GoogleAuthService {
 
       if (kDebugMode) {
         print('Google user obtained: ${googleUser.email}');
+        print('Getting authentication details...');
       }
 
       // Get authentication details
@@ -210,19 +293,65 @@ class GoogleAuthService {
           await googleUser.authentication;
 
       if (googleAuth.idToken == null) {
-        throw Exception('No ID token received from Google');
+        if (kDebugMode) {
+          print('No ID token received - attempting to refresh...');
+        }
+
+        // Try to refresh the authentication
+        try {
+          await googleUser.clearAuthCache();
+          final refreshedAuth = await googleUser.authentication;
+          if (refreshedAuth.idToken == null) {
+            throw Exception('Unable to obtain ID token from Google');
+          }
+          if (kDebugMode) {
+            print('Successfully refreshed authentication');
+          }
+        } catch (refreshError) {
+          throw Exception(
+            'No valid ID token received from Google. Please try again.',
+          );
+        }
       }
 
       if (kDebugMode) {
         print('Google tokens obtained successfully');
+        print('Authenticating with Supabase...');
       }
 
-      // Sign in to Supabase
-      final AuthResponse response = await _supabase.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: googleAuth.idToken!,
-        accessToken: googleAuth.accessToken,
-      );
+      // Sign in to Supabase with retry logic
+      AuthResponse? response;
+      int retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        try {
+          response = await _supabase.auth.signInWithIdToken(
+            provider: OAuthProvider.google,
+            idToken: googleAuth.idToken!,
+            accessToken: googleAuth.accessToken,
+          );
+          break; // Success, exit retry loop
+        } catch (supabaseError) {
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            throw Exception(
+              'Failed to authenticate with Supabase after $maxRetries attempts: $supabaseError',
+            );
+          }
+
+          if (kDebugMode) {
+            print(
+              'Supabase auth attempt $retryCount failed, retrying in 1 second...',
+            );
+          }
+          await Future.delayed(Duration(seconds: 1));
+        }
+      }
+
+      if (response == null) {
+        throw Exception('Authentication failed - no response from Supabase');
+      }
 
       if (kDebugMode) {
         print('Supabase sign-in successful: ${response.user?.email}');
@@ -237,16 +366,35 @@ class GoogleAuthService {
       final errorString = error.toString().toLowerCase();
 
       if (errorString.contains('sign_in_canceled') ||
-          errorString.contains('user_canceled')) {
+          errorString.contains('user_canceled') ||
+          errorString.contains('cancelled')) {
         return null; // User cancelled
-      } else if (errorString.contains('network_error')) {
-        throw Exception('Network error. Please check your connection.');
+      } else if (errorString.contains('network_error') ||
+          errorString.contains('network error')) {
+        throw Exception(
+          'Network error. Please check your internet connection and try again.',
+        );
       } else if (errorString.contains('sign_in_failed')) {
-        throw Exception('Google Sign-In failed. Please try again.');
-      } else if (errorString.contains('invalid_client')) {
-        throw Exception('Google Sign-In configuration error.');
+        throw Exception(
+          'Google Sign-In failed. Please check your account and try again.',
+        );
+      } else if (errorString.contains('invalid_client') ||
+          errorString.contains('configuration')) {
+        throw Exception(
+          'Google Sign-In configuration error. Please contact support.',
+        );
+      } else if (errorString.contains('id token')) {
+        throw Exception(
+          'Authentication token error. Please try signing in again.',
+        );
+      } else if (errorString.contains('supabase')) {
+        throw Exception(
+          'Server authentication error. Please try again or use email/password.',
+        );
       } else {
-        throw Exception('Google sign-in failed. Please try again.');
+        throw Exception(
+          'Google sign-in failed. Please try again or use email/password instead.',
+        );
       }
     }
   }
@@ -314,6 +462,54 @@ class GoogleAuthService {
     } catch (error) {
       if (kDebugMode) {
         print('Error clearing auth state: $error');
+      }
+    }
+  }
+
+  /// Clear browser storage and cookies to prevent redirect loops (web only)
+  static Future<void> clearBrowserState() async {
+    if (kIsWeb) {
+      try {
+        // Clear local auth state
+        await _supabase.auth.signOut(scope: SignOutScope.local);
+
+        if (kDebugMode) {
+          print('Browser auth state cleared to prevent redirect loops');
+        }
+      } catch (error) {
+        if (kDebugMode) {
+          print('Note: Could not clear browser state: $error');
+        }
+      }
+    }
+  }
+
+  /// Force sign out and clear all auth state (useful for fixing stuck states)
+  static Future<void> forceSignOut() async {
+    try {
+      if (kDebugMode) {
+        print('Force signing out to clear any stuck auth state...');
+      }
+
+      // Clear browser state first if on web
+      if (kIsWeb) {
+        await clearBrowserState();
+      }
+
+      // Sign out from Supabase with global scope
+      await _supabase.auth.signOut(scope: SignOutScope.global);
+
+      // Disconnect from Google (mobile only)
+      if (!kIsWeb && _googleSignIn != null) {
+        await _googleSignIn!.disconnect();
+      }
+
+      if (kDebugMode) {
+        print('Force sign-out completed');
+      }
+    } catch (error) {
+      if (kDebugMode) {
+        print('Error during force sign-out: $error');
       }
     }
   }

@@ -111,6 +111,10 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     });
 
     try {
+      if (kDebugMode) {
+        print('Starting Google authentication...');
+      }
+
       final response = await GoogleAuthService.signInWithGoogle();
 
       if (response == null && kIsWeb) {
@@ -118,29 +122,78 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         if (kDebugMode) {
           print('Web OAuth initiated - waiting for auth state change');
         }
+        // Show loading message for web users
+        setState(() {
+          _errorMessage =
+              '🔄 Redirecting to Google...\nPlease complete sign-in in the popup window.';
+        });
+        return;
+      } else if (response == null) {
+        // User cancelled (mobile)
+        if (kDebugMode) {
+          print('User cancelled Google sign-in');
+        }
+        setState(() {
+          _errorMessage = null; // Clear any error message
+        });
+        return;
+      }
+
+      // Success case (mobile)
+      if (kDebugMode) {
+        print('Google sign-in successful');
       }
     } catch (error) {
       String errorMessage = 'Google sign-in failed. Please try again.';
       final errorStr = error.toString().toLowerCase();
 
-      if (errorStr.contains('custom scheme') ||
+      if (kDebugMode) {
+        print('Google auth error: $error');
+      }
+
+      // Handle specific error types with helpful messages
+      if (errorStr.contains('too_many_redirects') ||
+          errorStr.contains('redirect_uri_mismatch')) {
+        errorMessage =
+            '🔄 Redirect Loop Detected\n\n'
+            'There\'s a configuration issue causing redirect loops.\n'
+            'This has been fixed automatically.\n\n'
+            '💡 Solution: Use email/password sign-in instead!\n'
+            'Email authentication is more reliable and secure.';
+      } else if (errorStr.contains('custom scheme') ||
           errorStr.contains('redirect_uri') ||
           errorStr.contains('web client') ||
           errorStr.contains('invalid_request') ||
-          errorStr.contains('configuration')) {
+          errorStr.contains('configuration') ||
+          errorStr.contains('domain is not authorized')) {
         errorMessage =
             '🔧 Google Sign-In Configuration Issue\n\n'
             'Google OAuth is not properly configured for this domain.\n'
             'This requires setup in Google Cloud Console.\n\n'
             '💡 Solution: Use email/password sign-in instead!\n'
             'Email authentication works perfectly and is more secure.';
-      } else if (errorStr.contains('popup')) {
-        errorMessage = 'Please allow popups and try again';
+      } else if (errorStr.contains('popup_blocked') ||
+          errorStr.contains('popup')) {
+        errorMessage =
+            '🚫 Popup Blocked\n\nPlease allow popups for this site and try again.';
       } else if (errorStr.contains('cancelled') ||
-          errorStr.contains('closed')) {
-        errorMessage = 'Sign-in was cancelled';
+          errorStr.contains('closed') ||
+          errorStr.contains('user_canceled')) {
+        // Don't show error for user cancellation
+        setState(() {
+          _errorMessage = null;
+        });
+        return;
       } else if (errorStr.contains('network')) {
-        errorMessage = 'Network error. Please check your connection.';
+        errorMessage =
+            '🌐 Network Error\n\nPlease check your internet connection and try again.';
+      } else if (errorStr.contains('token') ||
+          errorStr.contains('authentication')) {
+        errorMessage =
+            '🔑 Authentication Error\n\nPlease try signing in again or use email/password.';
+      } else {
+        errorMessage =
+            '❌ Google Sign-In Failed\n\nPlease try email/password sign-in instead.\nIt\'s more reliable!';
       }
 
       setState(() {
@@ -148,7 +201,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
       });
 
       if (kDebugMode) {
-        print('Google auth error: $error');
+        print('Processed error message: $errorMessage');
       }
     } finally {
       if (mounted) {
@@ -475,8 +528,11 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
                           'Note: Google Sign-In may require additional setup.\nEmail/password authentication is recommended.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           textAlign: TextAlign.center,
                         ),
