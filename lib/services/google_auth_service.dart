@@ -91,18 +91,20 @@ class GoogleAuthService {
     }
   }
 
-  /// Web sign-in using Supabase OAuth
+  /// Web sign-in using Supabase OAuth with controlled redirect
   static Future<AuthResponse?> _signInWeb() async {
     try {
       if (kDebugMode) {
         print('Initiating web OAuth flow...');
+        print('Using Supabase OAuth with controlled redirect');
       }
 
+      // Use Supabase OAuth but without specifying redirectTo to let Supabase handle it
+      // This prevents the "custom scheme" error
       final bool success = await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: SupabaseConfig.oauthCallbackUrl,
-        authScreenLaunchMode: LaunchMode.externalApplication,
-        queryParams: {'access_type': 'offline', 'prompt': 'select_account'},
+        // Let Supabase handle the redirect automatically
+        authScreenLaunchMode: LaunchMode.platformDefault,
       );
 
       if (!success) {
@@ -111,6 +113,7 @@ class GoogleAuthService {
 
       if (kDebugMode) {
         print('OAuth flow initiated successfully');
+        print('Supabase will handle the redirect automatically');
       }
 
       // For web, the auth state change will be handled by the auth listener
@@ -118,17 +121,61 @@ class GoogleAuthService {
     } catch (error) {
       if (kDebugMode) {
         print('Web OAuth error: $error');
+        print('Trying fallback method...');
+      }
+
+      // Try alternative approach if the main method fails
+      return await _fallbackWebAuth();
+    }
+  }
+
+  /// Fallback web authentication method using inAppWebView
+  static Future<AuthResponse?> _fallbackWebAuth() async {
+    try {
+      if (kDebugMode) {
+        print('Attempting fallback OAuth method with inAppWebView...');
+      }
+
+      // Try with inAppWebView to contain the OAuth flow
+      final bool success = await _supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        authScreenLaunchMode: LaunchMode.inAppWebView,
+      );
+
+      if (!success) {
+        throw Exception('Fallback OAuth method also failed');
+      }
+
+      if (kDebugMode) {
+        print('Fallback OAuth initiated successfully');
+      }
+
+      return null;
+    } catch (error) {
+      if (kDebugMode) {
+        print('Fallback OAuth error: $error');
       }
 
       final errorMessage = error.toString().toLowerCase();
+
+      // Handle specific OAuth errors with helpful messages
       if (errorMessage.contains('popup_blocked')) {
         throw Exception(
           'Popup was blocked. Please allow popups and try again.',
         );
       } else if (errorMessage.contains('popup_closed')) {
         throw Exception('Sign-in was cancelled.');
+      } else if (errorMessage.contains('custom scheme') ||
+          errorMessage.contains('redirect_uri') ||
+          errorMessage.contains('invalid_request') ||
+          errorMessage.contains('web client')) {
+        throw Exception(
+          'Google OAuth configuration issue detected.\n\n'
+          'The Google Cloud Console settings for this app need to be updated.\n'
+          'Please use email/password sign-in as an alternative.',
+        );
       } else {
-        throw Exception('Google sign-in failed. Please try again.');
+        throw Exception('Google sign-in failed. Please try email/password instead.');
       }
     }
   }

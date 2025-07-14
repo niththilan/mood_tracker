@@ -120,8 +120,31 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         }
       }
     } catch (error) {
+      String errorMessage = 'Google sign-in failed. Please try again.';
+      final errorStr = error.toString().toLowerCase();
+
+      if (errorStr.contains('custom scheme') ||
+          errorStr.contains('redirect_uri') ||
+          errorStr.contains('web client') ||
+          errorStr.contains('invalid_request') ||
+          errorStr.contains('configuration')) {
+        errorMessage =
+            '🔧 Google Sign-In Configuration Issue\n\n'
+            'Google OAuth is not properly configured for this domain.\n'
+            'This requires setup in Google Cloud Console.\n\n'
+            '💡 Solution: Use email/password sign-in instead!\n'
+            'Email authentication works perfectly and is more secure.';
+      } else if (errorStr.contains('popup')) {
+        errorMessage = 'Please allow popups and try again';
+      } else if (errorStr.contains('cancelled') ||
+          errorStr.contains('closed')) {
+        errorMessage = 'Sign-in was cancelled';
+      } else if (errorStr.contains('network')) {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+
       setState(() {
-        _errorMessage = 'Google sign-in failed. Please try again.';
+        _errorMessage = errorMessage;
       });
 
       if (kDebugMode) {
@@ -444,6 +467,18 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                        ),
+                      ),
+
+                      // Google Sign In Info
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Note: Google Sign-In may require additional setup.\nEmail/password authentication is recommended.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
 
