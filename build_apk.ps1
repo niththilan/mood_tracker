@@ -3,6 +3,9 @@
 
 Write-Host "🚀 Starting Mood Tracker APK Build Process..." -ForegroundColor Blue
 
+# Set Java 21 for compatibility (adjust path as needed)
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.2.13-hotspot"
+
 # Function to print colored output
 function Write-Status {
     param([string]$Message)

@@ -5,6 +5,9 @@
 
 echo "🚀 Starting Mood Tracker APK Build Process..."
 
+# Set Java 21 for compatibility
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
