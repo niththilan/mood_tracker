@@ -196,7 +196,9 @@ class GoogleAuthService {
           }
         } catch (e) {
           if (kDebugMode) {
-            print('Android: Could not disconnect (normal if not previously connected): $e');
+            print(
+              'Android: Could not disconnect (normal if not previously connected): $e',
+            );
           }
         }
       }
@@ -238,7 +240,7 @@ class GoogleAuthService {
           }
           // For Android emulators, let's provide more specific error handling
           final errorString = e.toString().toLowerCase();
-          if (errorString.contains('developer_error') || 
+          if (errorString.contains('developer_error') ||
               errorString.contains('api_not_available') ||
               errorString.contains('sign_in_failed')) {
             throw Exception(
