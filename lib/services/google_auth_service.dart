@@ -28,9 +28,12 @@ class GoogleAuthService {
         _googleSignIn = GoogleSignIn(
           scopes: ['email', 'profile', 'openid'],
           clientId: clientId,
-          // Add server client ID for iOS if available
-          serverClientId: kIsWeb ? null : SupabaseConfig.googleWebClientId,
-          // Force account selection on iOS to avoid cached token issues
+          // Add server client ID for Android/iOS token validation
+          serverClientId:
+              Platform.isAndroid
+                  ? SupabaseConfig.googleWebClientId
+                  : SupabaseConfig.googleWebClientId,
+          // Force account selection to avoid cached token issues
           forceCodeForRefreshToken: true,
         );
 
@@ -177,7 +180,7 @@ class GoogleAuthService {
       try {
         await _googleSignIn!.signOut();
         await Future.delayed(
-          Duration(milliseconds: Platform.isAndroid ? 3000 : 1000),
+          Duration(milliseconds: Platform.isAndroid ? 2000 : 1000),
         ); // Longer pause for Android to clear state properly
       } catch (e) {
         // Ignore sign out errors
@@ -190,7 +193,7 @@ class GoogleAuthService {
       if (Platform.isAndroid) {
         try {
           await _googleSignIn!.disconnect();
-          await Future.delayed(Duration(milliseconds: 1000));
+          await Future.delayed(Duration(milliseconds: 500));
           if (kDebugMode) {
             print('Android: Disconnected from Google to ensure fresh auth');
           }
@@ -232,25 +235,37 @@ class GoogleAuthService {
               'Android: Can access Google Sign-In scopes: $canAccessGoogleSignIn',
             );
           }
-        } catch (e) {
-          if (kDebugMode) {
-            print(
-              'Android: Could not check Google Play Services availability: $e',
+
+          // If we can't access scopes, provide helpful error
+          if (!canAccessGoogleSignIn) {
+            throw Exception(
+              'Google Play Services not available or not configured properly',
             );
           }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Android: Google Play Services check failed: $e');
+          }
+
           // For Android emulators, let's provide more specific error handling
           final errorString = e.toString().toLowerCase();
           if (errorString.contains('developer_error') ||
               errorString.contains('api_not_available') ||
-              errorString.contains('sign_in_failed')) {
+              errorString.contains('sign_in_failed') ||
+              errorString.contains('play services') ||
+              errorString.contains('not available')) {
             throw Exception(
-              'Google Sign-In setup issue detected:\n\n'
+              'Google Sign-In setup issue on Android:\n\n'
               '🔧 For Android Emulator:\n'
-              '1. Make sure Google Play Services are installed\n'
-              '2. Check that SHA-1 fingerprint is correctly configured\n'
-              '3. Ensure the google-services.json file is up to date\n\n'
-              '💡 Current SHA-1: 29:4E:13:7C:8A:F1:84:B9:A1:2D:09:18:73:13:39:A5:05:2A:B8:2A\n'
-              'Make sure this is added to your Google Cloud Console.',
+              '1. Make sure you\'re using an emulator with Google Play Services\n'
+              '2. Check that SHA-1 fingerprint is correctly configured in Google Cloud Console\n'
+              '3. Verify that the google-services.json file is up to date\n'
+              '4. Make sure Google Sign-In API is enabled in Google Cloud Console\n\n'
+              '💡 Current configuration:\n'
+              '- Package: com.example.mood_tracker\n'
+              '- SHA-1: 29:4E:13:7C:8A:F1:84:B9:A1:2D:09:18:73:13:39:A5:05:2A:B8:2A\n'
+              '- Client ID: ${SupabaseConfig.googleAndroidClientId}\n\n'
+              'Error details: $e',
             );
           }
         }
