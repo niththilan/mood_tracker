@@ -16,7 +16,13 @@ allprojects {
 }
 
 subprojects {
-    project.evaluationDependsOn(":app")
+    afterEvaluate {
+        if (plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")) {
+            android {
+                compileSdkVersion(34)
+            }
+        }
+    }
 }
 
 tasks.register("clean", Delete::class) {

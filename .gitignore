@@ -87,3 +87,12 @@ log/
 logs/
 temp/
 tmp/
+
+# APK build artifacts (keep for convenience but exclude from version control)
+/build/apk/
+*.apk
+*.aab
+
+# Gradle temporary files
+.gradle/
+/android/.gradle/
