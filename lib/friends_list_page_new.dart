@@ -188,11 +188,13 @@ class _FriendsListPageState extends State<FriendsListPage>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Theme.of(context).colorScheme.primaryContainer.withOpacity(0.1),
+              Theme.of(
+                context,
+              ).colorScheme.primaryContainer.withValues(alpha: 0.1),
               Theme.of(context).colorScheme.surface,
               Theme.of(
                 context,
-              ).colorScheme.secondaryContainer.withOpacity(0.05),
+              ).colorScheme.secondaryContainer.withValues(alpha: 0.05),
             ],
           ),
         ),
@@ -397,7 +399,9 @@ class _FriendsListPageState extends State<FriendsListPage>
                   shape: BoxShape.circle,
                   gradient: SweepGradient(
                     colors: [
-                      Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                      Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.2),
                       Theme.of(context).colorScheme.primary,
                     ],
                     stops: [0.0, value],
@@ -642,7 +646,7 @@ class _FriendsListPageState extends State<FriendsListPage>
                           Theme.of(context).colorScheme.surface,
                           Theme.of(
                             context,
-                          ).colorScheme.surfaceContainer.withOpacity(0.3),
+                          ).colorScheme.surfaceContainer.withValues(alpha: 0.3),
                         ],
                       ),
                     ),

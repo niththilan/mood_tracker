@@ -336,11 +336,11 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
                                   color: _profile!.recentMood!.moodColor
-                                      .withOpacity(0.1),
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: _profile!.recentMood!.moodColor
-                                        .withOpacity(0.3),
+                                        .withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: Row(
