@@ -206,32 +206,66 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 return;
               }
 
-              // Only ensure user profile exists for existing logins, not new signups
-              if (data.session?.user != null &&
-                  data.event == AuthChangeEvent.signedIn) {
+              // Handle successful authentication (including Google Sign-In)
+              if (data.session?.user != null && 
+                  (data.event == AuthChangeEvent.signedIn || 
+                   data.event == AuthChangeEvent.tokenRefreshed)) {
                 print(
-                  'User signed in (event: ${data.event}), checking if profile exists...',
+                  'User authenticated (event: ${data.event}), checking if profile exists...',
                 );
-                // Add a small delay to allow signup profile creation to complete
-                await Future.delayed(
-                  Duration(milliseconds: 500),
-                ); // Reduced delay
 
-                // Only create default profile if no profile exists and it's not a new signup
+                // For Google Sign-In users, get the best available name from user metadata
+                String displayName = data.session!.user.email?.split('@')[0] ?? 'User';
+                
+                // Check if this is a Google Sign-In user and extract full name
+                final userMetadata = data.session!.user.userMetadata;
+                if (kDebugMode && userMetadata != null) {
+                  print('Available user metadata: ${userMetadata.keys.toList()}');
+                }
+                
+                if (userMetadata != null) {
+                  // Try different possible name fields from Google
+                  if (userMetadata['full_name'] != null && userMetadata['full_name'].toString().isNotEmpty) {
+                    displayName = userMetadata['full_name'] as String;
+                    print('Google Sign-In detected, using full_name: $displayName');
+                  } else if (userMetadata['name'] != null && userMetadata['name'].toString().isNotEmpty) {
+                    displayName = userMetadata['name'] as String;
+                    print('Google Sign-In detected, using name: $displayName');
+                  } else if (userMetadata['given_name'] != null && userMetadata['family_name'] != null) {
+                    final firstName = userMetadata['given_name'] as String?;
+                    final lastName = userMetadata['family_name'] as String?;
+                    if (firstName != null && lastName != null) {
+                      displayName = '$firstName $lastName'.trim();
+                      print('Google Sign-In detected, using given_name + family_name: $displayName');
+                    }
+                  } else if (userMetadata['given_name'] != null) {
+                    displayName = userMetadata['given_name'] as String;
+                    print('Google Sign-In detected, using given_name: $displayName');
+                  }
+                }
+
+                // Add a small delay to allow any pending operations to complete
+                await Future.delayed(Duration(milliseconds: 300));
+
+                // Check if profile exists and create one if needed
                 final existingProfile = await UserProfileService.getUserProfile(
                   data.session!.user.id,
                 );
+                
                 if (existingProfile == null) {
                   print(
-                    'No profile found for existing user, creating default profile...',
+                    'No profile found for user, creating default profile with name: $displayName',
                   );
                   final profileCreated =
                       await UserProfileService.createUserProfile(
                         userId: data.session!.user.id,
-                        name: data.session!.user.email?.split('@')[0] ?? 'User',
+                        name: displayName,
                       );
-                  if (!profileCreated) {
-                    print('Failed to create user profile in auth state change');
+                  if (profileCreated) {
+                    print('✅ User profile created successfully for Google Sign-In user: $displayName');
+                    // The navigation to homepage will happen automatically via the build method
+                  } else {
+                    print('❌ Failed to create user profile in auth state change');
                   }
                 } else {
                   print(
@@ -257,12 +291,41 @@ class _AuthWrapperState extends State<AuthWrapper> {
             print(
               'No profile found for existing session, creating default profile...',
             );
+            
+            // For existing sessions, try to get the best display name
+            String displayName = _session!.user.email?.split('@')[0] ?? 'User';
+            
+            // Check if this is a Google Sign-In user and extract the best available name
+            final userMetadata = _session!.user.userMetadata;
+            if (userMetadata != null) {
+              // Try different possible name fields from Google
+              if (userMetadata['full_name'] != null && userMetadata['full_name'].toString().isNotEmpty) {
+                displayName = userMetadata['full_name'] as String;
+                print('Google Sign-In user detected, using full_name: $displayName');
+              } else if (userMetadata['name'] != null && userMetadata['name'].toString().isNotEmpty) {
+                displayName = userMetadata['name'] as String;
+                print('Google Sign-In user detected, using name: $displayName');
+              } else if (userMetadata['given_name'] != null && userMetadata['family_name'] != null) {
+                final firstName = userMetadata['given_name'] as String?;
+                final lastName = userMetadata['family_name'] as String?;
+                if (firstName != null && lastName != null) {
+                  displayName = '$firstName $lastName'.trim();
+                  print('Google Sign-In user detected, using given_name + family_name: $displayName');
+                }
+              } else if (userMetadata['given_name'] != null) {
+                displayName = userMetadata['given_name'] as String;
+                print('Google Sign-In user detected, using given_name: $displayName');
+              }
+            }
+            
             final profileCreated = await UserProfileService.createUserProfile(
               userId: _session!.user.id,
-              name: _session!.user.email?.split('@')[0] ?? 'User',
+              name: displayName,
             );
             if (!profileCreated) {
               print('Failed to create user profile for existing session');
+            } else {
+              print('Successfully created profile for existing session with name: $displayName');
             }
           }
         }
