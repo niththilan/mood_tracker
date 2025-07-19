@@ -254,7 +254,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 
                 if (existingProfile == null) {
                   print(
-                    'No profile found for user, creating default profile with name: $displayName',
+                    '❌ No profile found for user ${data.session!.user.email}, creating new profile with name: $displayName',
                   );
                   final profileCreated =
                       await UserProfileService.createUserProfile(
@@ -262,15 +262,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
                         name: displayName,
                       );
                   if (profileCreated) {
-                    print('✅ User profile created successfully for Google Sign-In user: $displayName');
+                    print('✅ User profile created successfully for new Google Sign-In user: $displayName');
                     // The navigation to homepage will happen automatically via the build method
                   } else {
                     print('❌ Failed to create user profile in auth state change');
                   }
                 } else {
                   print(
-                    'Profile already exists with name: ${existingProfile['name']}',
+                    '✅ Profile already exists for user ${data.session!.user.email} with name: ${existingProfile['name']}',
                   );
+                  print('🔄 Skipping profile creation - user will be redirected to homepage with existing profile');
                 }
               }
             }
@@ -283,13 +284,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
         // If there's an existing session, ensure profile exists
         if (_session?.user != null) {
-          print('Existing session found, checking if profile exists...');
+          print('📱 Existing session found for user: ${_session!.user.email}, checking if profile exists...');
           final existingProfile = await UserProfileService.getUserProfile(
             _session!.user.id,
           );
           if (existingProfile == null) {
             print(
-              'No profile found for existing session, creating default profile...',
+              '❌ No profile found for existing session, creating default profile...',
             );
             
             // For existing sessions, try to get the best display name
@@ -323,10 +324,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
               name: displayName,
             );
             if (!profileCreated) {
-              print('Failed to create user profile for existing session');
+              print('❌ Failed to create user profile for existing session');
             } else {
-              print('Successfully created profile for existing session with name: $displayName');
+              print('✅ Successfully created profile for existing session with name: $displayName');
             }
+          } else {
+            print(
+              '✅ Profile already exists for existing session with name: ${existingProfile['name']}',
+            );
+            print('🏠 User will be redirected to homepage with existing profile');
           }
         }
 

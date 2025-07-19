@@ -48,7 +48,7 @@ class UserProfileService {
         // Check if profile already exists
         final existingProfile = await getUserProfile(userId);
         if (existingProfile != null) {
-          print('Profile already exists for user: $userId');
+          print('✅ Profile already exists for user: $userId with name: "${existingProfile['name']}" - skipping creation');
           return true;
         }
 
