@@ -142,7 +142,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
 
       // Success case (mobile or web with immediate response)
       if (kDebugMode) {
-        print('Google sign-in successful - user: ${response.user?.email}');
+        print('🎉 Google sign-in successful - user: ${response.user?.email}');
       }
       
       // Show success message and let AuthWrapper handle navigation
@@ -150,10 +150,18 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         _errorMessage = '✅ Google Sign-In successful! Setting up your profile...';
       });
       
-      // Wait a moment for the auth state change to be processed
-      await Future.delayed(Duration(milliseconds: 1000));
+      // Wait longer for the auth state change to be processed and profile creation
+      await Future.delayed(Duration(milliseconds: 2000));
       
-      // The AuthWrapper will automatically handle navigation to home page
+      // Clear the loading state - AuthWrapper will handle navigation automatically
+      if (mounted) {
+        setState(() {
+          _errorMessage = '🎉 Welcome! Redirecting to your mood tracker...';
+        });
+        
+        // Give a bit more time for the UI to update
+        await Future.delayed(Duration(milliseconds: 500));
+      }
     } catch (error) {
       String errorMessage = 'Google sign-in failed. Please try again.';
       final errorStr = error.toString().toLowerCase();

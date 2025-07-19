@@ -146,8 +146,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   bool _isInitialized = false;
   bool _onboardingCompleted = false;
   Session? _session;
-  bool _isHandlingAuthChange =
-      false; // Prevent multiple simultaneous auth changes
+  bool _isHandlingAuthChange = false; // Prevent multiple simultaneous auth changes
 
   @override
   void initState() {
@@ -170,6 +169,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
         // Get initial session
         _session = Supabase.instance.client.auth.currentSession;
+        print('🔍 Initial session check: ${_session != null ? _session!.user.email : 'No session'}');
 
         if (mounted) {
           setState(() {});
@@ -187,31 +187,33 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
           try {
             if (mounted) {
-              setState(() {
-                _session = data.session;
-              });
-
               final userEmail =
                   data.session != null
                       ? data.session!.user.email ?? 'none'
                       : 'none';
-              print('Auth state change: ${data.event}, user: $userEmail');
+              print('🔄 Auth state change: ${data.event}, user: $userEmail');
 
               // Handle sign out event explicitly
               if (data.event == AuthChangeEvent.signedOut) {
-                print('User signed out, clearing session...');
+                print('👋 User signed out, clearing session...');
                 setState(() {
                   _session = null;
                 });
                 return;
               }
 
+              // Update session state first
+              setState(() {
+                _session = data.session;
+              });
+
               // Handle successful authentication (including Google Sign-In)
               if (data.session?.user != null && 
                   (data.event == AuthChangeEvent.signedIn || 
-                   data.event == AuthChangeEvent.tokenRefreshed)) {
+                   data.event == AuthChangeEvent.tokenRefreshed ||
+                   data.event == AuthChangeEvent.initialSession)) {
                 print(
-                  'User authenticated (event: ${data.event}), checking if profile exists...',
+                  '🔐 User authenticated (event: ${data.event}), checking if profile exists...',
                 );
 
                 // For Google Sign-In users, get the best available name from user metadata
@@ -220,27 +222,27 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 // Check if this is a Google Sign-In user and extract full name
                 final userMetadata = data.session!.user.userMetadata;
                 if (kDebugMode && userMetadata != null) {
-                  print('Available user metadata: ${userMetadata.keys.toList()}');
+                  print('📝 Available user metadata: ${userMetadata.keys.toList()}');
                 }
                 
                 if (userMetadata != null) {
                   // Try different possible name fields from Google
                   if (userMetadata['full_name'] != null && userMetadata['full_name'].toString().isNotEmpty) {
                     displayName = userMetadata['full_name'] as String;
-                    print('Google Sign-In detected, using full_name: $displayName');
+                    print('🎯 Google Sign-In detected, using full_name: $displayName');
                   } else if (userMetadata['name'] != null && userMetadata['name'].toString().isNotEmpty) {
                     displayName = userMetadata['name'] as String;
-                    print('Google Sign-In detected, using name: $displayName');
+                    print('🎯 Google Sign-In detected, using name: $displayName');
                   } else if (userMetadata['given_name'] != null && userMetadata['family_name'] != null) {
                     final firstName = userMetadata['given_name'] as String?;
                     final lastName = userMetadata['family_name'] as String?;
                     if (firstName != null && lastName != null) {
                       displayName = '$firstName $lastName'.trim();
-                      print('Google Sign-In detected, using given_name + family_name: $displayName');
+                      print('🎯 Google Sign-In detected, using given_name + family_name: $displayName');
                     }
                   } else if (userMetadata['given_name'] != null) {
                     displayName = userMetadata['given_name'] as String;
-                    print('Google Sign-In detected, using given_name: $displayName');
+                    print('🎯 Google Sign-In detected, using given_name: $displayName');
                   }
                 }
 
@@ -263,7 +265,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
                       );
                   if (profileCreated) {
                     print('✅ User profile created successfully for new Google Sign-In user: $displayName');
-                    // The navigation to homepage will happen automatically via the build method
                   } else {
                     print('❌ Failed to create user profile in auth state change');
                   }
@@ -273,10 +274,26 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   );
                   print('🔄 Skipping profile creation - user will be redirected to homepage with existing profile');
                 }
+
+                // Force UI rebuild to ensure navigation happens
+                if (mounted) {
+                  print('🚀 Triggering UI rebuild for navigation to homepage...');
+                  setState(() {
+                    // This will trigger the build method which will navigate to MoodHomePage
+                  });
+                  
+                  // Also trigger a delayed rebuild as a safety measure
+                  Future.delayed(Duration(milliseconds: 500), () {
+                    if (mounted && _session != null) {
+                      print('🔄 Safety rebuild - ensuring navigation to homepage');
+                      setState(() {});
+                    }
+                  });
+                }
               }
             }
           } catch (e) {
-            print('Error in auth state change handler: $e');
+            print('❌ Error in auth state change handler: $e');
           } finally {
             _isHandlingAuthChange = false;
           }
@@ -302,20 +319,20 @@ class _AuthWrapperState extends State<AuthWrapper> {
               // Try different possible name fields from Google
               if (userMetadata['full_name'] != null && userMetadata['full_name'].toString().isNotEmpty) {
                 displayName = userMetadata['full_name'] as String;
-                print('Google Sign-In user detected, using full_name: $displayName');
+                print('🎯 Google Sign-In user detected, using full_name: $displayName');
               } else if (userMetadata['name'] != null && userMetadata['name'].toString().isNotEmpty) {
                 displayName = userMetadata['name'] as String;
-                print('Google Sign-In user detected, using name: $displayName');
+                print('🎯 Google Sign-In user detected, using name: $displayName');
               } else if (userMetadata['given_name'] != null && userMetadata['family_name'] != null) {
                 final firstName = userMetadata['given_name'] as String?;
                 final lastName = userMetadata['family_name'] as String?;
                 if (firstName != null && lastName != null) {
                   displayName = '$firstName $lastName'.trim();
-                  print('Google Sign-In user detected, using given_name + family_name: $displayName');
+                  print('🎯 Google Sign-In user detected, using given_name + family_name: $displayName');
                 }
               } else if (userMetadata['given_name'] != null) {
                 displayName = userMetadata['given_name'] as String;
-                print('Google Sign-In user detected, using given_name: $displayName');
+                print('🎯 Google Sign-In user detected, using given_name: $displayName');
               }
             }
             
@@ -336,7 +353,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
           }
         }
 
+        // Force UI update after checking existing session
         if (mounted) {
+          print('🔄 Forcing UI update after session initialization...');
           setState(() {});
         }
       } catch (e) {
@@ -350,18 +369,24 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    print('🔨 AuthWrapper.build() called - _isInitialized: $_isInitialized, _onboardingCompleted: $_onboardingCompleted, _session: ${_session != null ? _session!.user.email : 'null'}');
+
     if (!_isInitialized) {
+      print('⏳ Showing loading screen - app not initialized yet');
       return LoadingScreen(message: 'Initializing MoodFlow...');
     }
 
     // Show onboarding if not completed
     if (!_onboardingCompleted) {
+      print('👋 Showing onboarding screen - onboarding not completed');
       return OnboardingScreen();
     }
 
     if (_session != null) {
+      print('🏠 User is authenticated, navigating to MoodHomePage for user: ${_session!.user.email}');
       return MoodHomePage();
     } else {
+      print('🔐 User not authenticated, showing AuthPage');
       return AuthPage();
     }
   }
