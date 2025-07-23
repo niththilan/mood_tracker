@@ -19,31 +19,17 @@ class SupabaseConfig {
   static const String oauthCallbackUrl =
       'https://xxasezacvotitccxnpaa.supabase.co/auth/v1/callback';
 
-  // Fixed localhost development URLs for Google OAuth
-  static const String localhostRedirectUrl = 'http://localhost:8080';
-  static const String localhostCallbackUrl =
-      'http://localhost:8080/auth/callback';
-
-  // Local development callback (if needed)
-  static String get webRedirectUrl {
-    // Always use fixed localhost:8080 for development
-    if (kIsWeb) {
-      final host = Uri.base.host;
-      if (host == 'localhost' || host == '127.0.0.1') {
-        return localhostRedirectUrl;
-      }
-    }
-    return oauthCallbackUrl;
-  }
-
   // Get the appropriate redirect URL based on environment
   static String getRedirectUrl() {
     if (kIsWeb) {
       final host = Uri.base.host;
+      final port = Uri.base.port;
+      
       if (host == 'localhost' || host == '127.0.0.1') {
-        // Use fixed localhost URL for development
-        return localhostCallbackUrl;
+        // For local development, use the current URL
+        return '${Uri.base.scheme}://$host:$port';
       }
+      
       // For production web, use Supabase callback
       return oauthCallbackUrl;
     } else {
@@ -56,8 +42,10 @@ class SupabaseConfig {
   static String getCurrentUrl() {
     if (kIsWeb) {
       final host = Uri.base.host;
+      final port = Uri.base.port;
+      
       if (host == 'localhost' || host == '127.0.0.1') {
-        return localhostRedirectUrl;
+        return '${Uri.base.scheme}://$host:$port';
       }
     }
     return 'https://your-production-domain.com';

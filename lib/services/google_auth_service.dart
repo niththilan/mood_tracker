@@ -4,9 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
 import 'dart:async';
 import 'supabase_config.dart';
-// Conditional import for web-only simplified auth
-import 'simplified_google_auth.dart'
-    if (dart.library.io) 'simplified_google_auth_stub.dart';
 
 /// Google Authentication Service for all platforms
 class GoogleAuthService {
@@ -103,19 +100,20 @@ class GoogleAuthService {
     return null;
   }
 
-  /// Sign in with Google
+  /// Sign in with Google using Supabase OAuth
   static Future<AuthResponse?> signInWithGoogle() async {
     try {
       if (kDebugMode) {
-        print('Starting Google Sign-In...');
+        print('Starting Supabase Google OAuth...');
         print('Platform: ${kIsWeb ? 'Web' : 'Mobile'}');
-        print('Client ID: ${_getClientId()}');
+        print('Supabase URL: ${SupabaseConfig.supabaseUrl}');
       }
 
       if (kIsWeb) {
-        // Use direct Google Auth for web to bypass redirect issues
-        return await _signInWebDirect();
+        // Use Supabase OAuth for web
+        return await _signInWithSupabaseOAuth();
       } else {
+        // Use Google Sign-In plugin for mobile, then authenticate with Supabase
         return await _signInMobile();
       }
     } catch (error) {
@@ -126,24 +124,30 @@ class GoogleAuthService {
     }
   }
 
-  /// Web sign-in using simplified Google Identity Services
-  static Future<AuthResponse?> _signInWebDirect() async {
+  /// Web sign-in using Supabase OAuth
+  static Future<AuthResponse?> _signInWithSupabaseOAuth() async {
     try {
       if (kDebugMode) {
-        print('Using simplified Google Identity Services for web...');
+        print('Using Supabase OAuth for Google Sign-In...');
+        print('Redirect URL: ${SupabaseConfig.getRedirectUrl()}');
       }
 
-      // Use the simplified Google auth (works with any port)
-      if (kIsWeb) {
-        return await SimplifiedGoogleAuth.signInWithGoogle();
-      } else {
-        throw UnsupportedError(
-          'Web authentication not available on mobile platforms',
-        );
+      // Use Supabase's built-in Google OAuth
+      final response = await _supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: SupabaseConfig.getRedirectUrl(),
+        authScreenLaunchMode: LaunchMode.platformDefault,
+      );
+
+      if (kDebugMode) {
+        print('Supabase OAuth initiated successfully');
+        print('Response: $response');
       }
+
+      return null; // OAuth redirect handled by Supabase
     } catch (error) {
       if (kDebugMode) {
-        print('Simplified Google Auth failed: $error');
+        print('Supabase OAuth failed: $error');
       }
 
       // Provide clear error message to user
@@ -154,8 +158,6 @@ class GoogleAuthService {
       );
     }
   }
-
-  /// Fallback web sign-in using Supabase OAuth
 
   /// Mobile sign-in using Google Sign-In plugin
   static Future<AuthResponse?> _signInMobile() async {
@@ -173,101 +175,16 @@ class GoogleAuthService {
         print('Starting mobile Google Sign-In...');
         print('Client ID: ${_getClientId()}');
         print('Platform: ${Platform.operatingSystem}');
-        print('Package Name: com.example.mood_tracker');
       }
 
-      // Android-specific: Clear any existing sign-in state first
+      // Clear any existing sign-in state first
       try {
         await _googleSignIn!.signOut();
-        await Future.delayed(
-          Duration(milliseconds: Platform.isAndroid ? 2000 : 1000),
-        ); // Longer pause for Android to clear state properly
+        await Future.delayed(Duration(milliseconds: 500));
       } catch (e) {
         // Ignore sign out errors
         if (kDebugMode) {
           print('Note: Could not clear existing state: $e');
-        }
-      }
-
-      // Android-specific: Clear cache and disconnect completely
-      if (Platform.isAndroid) {
-        try {
-          await _googleSignIn!.disconnect();
-          await Future.delayed(Duration(milliseconds: 500));
-          if (kDebugMode) {
-            print('Android: Disconnected from Google to ensure fresh auth');
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            print(
-              'Android: Could not disconnect (normal if not previously connected): $e',
-            );
-          }
-        }
-      }
-
-      // iOS-specific: Disconnect completely to ensure fresh authentication
-      if (Platform.isIOS) {
-        try {
-          await _googleSignIn!.disconnect();
-          await Future.delayed(Duration(milliseconds: 500));
-          if (kDebugMode) {
-            print('iOS: Disconnected from Google to ensure fresh auth');
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            print(
-              'iOS: Could not disconnect (normal if not previously connected): $e',
-            );
-          }
-        }
-      }
-
-      // Android-specific: Check for Play Services availability
-      if (Platform.isAndroid) {
-        try {
-          // Try to check if Google Play Services are available
-          final canAccessGoogleSignIn = await _googleSignIn!.canAccessScopes([
-            'email',
-          ]);
-          if (kDebugMode) {
-            print(
-              'Android: Can access Google Sign-In scopes: $canAccessGoogleSignIn',
-            );
-          }
-
-          // If we can't access scopes, provide helpful error
-          if (!canAccessGoogleSignIn) {
-            throw Exception(
-              'Google Play Services not available or not configured properly',
-            );
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            print('Android: Google Play Services check failed: $e');
-          }
-
-          // For Android emulators, let's provide more specific error handling
-          final errorString = e.toString().toLowerCase();
-          if (errorString.contains('developer_error') ||
-              errorString.contains('api_not_available') ||
-              errorString.contains('sign_in_failed') ||
-              errorString.contains('play services') ||
-              errorString.contains('not available')) {
-            throw Exception(
-              'Google Sign-In setup issue on Android:\n\n'
-              '🔧 For Android Emulator:\n'
-              '1. Make sure you\'re using an emulator with Google Play Services\n'
-              '2. Check that SHA-1 fingerprint is correctly configured in Google Cloud Console\n'
-              '3. Verify that the google-services.json file is up to date\n'
-              '4. Make sure Google Sign-In API is enabled in Google Cloud Console\n\n'
-              '💡 Current configuration:\n'
-              '- Package: com.example.mood_tracker\n'
-              '- SHA-1: 29:4E:13:7C:8A:F1:84:B9:A1:2D:09:18:73:13:39:A5:05:2A:B8:2A\n'
-              '- Client ID: ${SupabaseConfig.googleAndroidClientId}\n\n'
-              'Error details: $e',
-            );
-          }
         }
       }
 
@@ -286,57 +203,14 @@ class GoogleAuthService {
         print('Getting authentication details...');
       }
 
-      // Get authentication details with retry for iOS
-      GoogleSignInAuthentication? googleAuth;
-      int authRetries = 0;
-      const maxAuthRetries = 3;
-
-      while (authRetries < maxAuthRetries) {
-        try {
-          googleAuth = await googleUser.authentication;
-          break;
-        } catch (e) {
-          authRetries++;
-          if (authRetries >= maxAuthRetries) {
-            throw Exception(
-              'Failed to get authentication details after $maxAuthRetries attempts: $e',
-            );
-          }
-          if (kDebugMode) {
-            print('Auth attempt $authRetries failed, retrying...: $e');
-          }
-          await Future.delayed(Duration(seconds: 1));
-        }
-      }
-
-      if (googleAuth == null) {
-        throw Exception('Failed to obtain authentication details');
-      }
+      // Get authentication details
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       if (googleAuth.idToken == null) {
-        if (kDebugMode) {
-          print('No ID token received - attempting to refresh...');
-        }
-
-        // Try to refresh the authentication
-        try {
-          await googleUser.clearAuthCache();
-          await Future.delayed(Duration(milliseconds: 500));
-          final refreshedAuth = await googleUser.authentication;
-          if (refreshedAuth.idToken == null) {
-            throw Exception(
-              'Unable to obtain ID token from Google after refresh',
-            );
-          }
-          googleAuth = refreshedAuth;
-          if (kDebugMode) {
-            print('Successfully refreshed authentication');
-          }
-        } catch (refreshError) {
-          throw Exception(
-            'No valid ID token received from Google. Please try again.',
-          );
-        }
+        throw Exception(
+          'No ID token received from Google. Please try again.',
+        );
       }
 
       if (kDebugMode) {
@@ -346,39 +220,12 @@ class GoogleAuthService {
         print('Authenticating with Supabase...');
       }
 
-      // Sign in to Supabase with retry logic
-      AuthResponse? response;
-      int retryCount = 0;
-      const maxRetries = 3;
-
-      while (retryCount < maxRetries) {
-        try {
-          response = await _supabase.auth.signInWithIdToken(
-            provider: OAuthProvider.google,
-            idToken: googleAuth.idToken!,
-            accessToken: googleAuth.accessToken,
-          );
-          break; // Success, exit retry loop
-        } catch (supabaseError) {
-          retryCount++;
-          if (retryCount >= maxRetries) {
-            throw Exception(
-              'Failed to authenticate with Supabase after $maxRetries attempts: $supabaseError',
-            );
-          }
-
-          if (kDebugMode) {
-            print(
-              'Supabase auth attempt $retryCount failed, retrying in 2 seconds...: $supabaseError',
-            );
-          }
-          await Future.delayed(Duration(seconds: 2));
-        }
-      }
-
-      if (response == null) {
-        throw Exception('Authentication failed - no response from Supabase');
-      }
+      // Sign in to Supabase with the Google ID token
+      final AuthResponse response = await _supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: googleAuth.idToken!,
+        accessToken: googleAuth.accessToken,
+      );
 
       if (kDebugMode) {
         print('Supabase sign-in successful: ${response.user?.email}');
@@ -419,11 +266,6 @@ class GoogleAuthService {
       } else if (errorString.contains('supabase')) {
         throw Exception(
           'Server authentication error. Please try again or use email/password.',
-        );
-      } else if (errorString.contains('popup_closed_by_user') ||
-          errorString.contains('popup_blocked')) {
-        throw Exception(
-          'Sign-in popup was blocked or closed. Please try again.',
         );
       } else {
         // Android-specific error handling
