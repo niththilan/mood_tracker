@@ -19,8 +19,14 @@ class SupabaseConfig {
   static const String oauthCallbackUrl =
       'https://xxasezacvotitccxnpaa.supabase.co/auth/v1/callback';
 
-  // Fixed localhost URL for development (consistent port)
-  static const String localhostUrl = 'http://localhost:8080';
+  // Dynamic localhost URL for development (detects current port)
+  static String get localhostUrl {
+    if (kIsWeb) {
+      final currentUrl = Uri.base;
+      return '${currentUrl.scheme}://${currentUrl.host}:${currentUrl.port}';
+    }
+    return 'http://localhost:3000'; // fallback for non-web
+  }
 
   // Get the appropriate redirect URL based on environment
   static String getRedirectUrl() {
@@ -29,7 +35,7 @@ class SupabaseConfig {
       final host = currentUrl.host;
       
       if (host == 'localhost' || host == '127.0.0.1') {
-        // Always use fixed localhost:8080 for development
+        // Use dynamic localhost URL for development
         return localhostUrl;
       }
       
@@ -47,7 +53,7 @@ class SupabaseConfig {
       final host = Uri.base.host;
       
       if (host == 'localhost' || host == '127.0.0.1') {
-        // Always use fixed localhost:8080 for development
+        // Use dynamic localhost URL for development
         return localhostUrl;
       }
     }

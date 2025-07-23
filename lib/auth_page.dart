@@ -115,21 +115,21 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         print('Starting Google authentication...');
       }
 
+      // Show a user-friendly message about Google Auth limitations
+      if (kIsWeb) {
+        setState(() {
+          _errorMessage = 'ℹ️ Google Sign-In on web requires additional setup.\n\n'
+              'For now, please use email/password authentication which works perfectly!\n\n'
+              '💡 Email sign-up is quick and secure.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // For mobile platforms, attempt Google auth
       final response = await GoogleAuthService.signInWithGoogle();
 
-      if (kIsWeb) {
-        // For web, OAuth will redirect to Google and back
-        // The auth state change will be handled by AuthWrapper when user returns
-        if (kDebugMode) {
-          print('Web OAuth initiated - user will be redirected to Google');
-        }
-        // Keep loading state - user will be redirected away from this page
-        setState(() {
-          _errorMessage = '🔄 Redirecting to Google...\nPlease complete sign-in and return to this page.';
-        });
-        // Don't reset loading state - user is being redirected
-        return;
-      } else if (response == null) {
+      if (response == null) {
         // User cancelled (mobile)
         if (kDebugMode) {
           print('User cancelled Google sign-in');
@@ -217,6 +217,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         });
       }
     }
+  }
   }
 
   void _showSuccessDialog(String message) {

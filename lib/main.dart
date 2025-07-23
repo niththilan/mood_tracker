@@ -72,6 +72,8 @@ void _initializeSupabase() async {
 }
 
 class MoodTrackerApp extends StatelessWidget {
+  const MoodTrackerApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeService>(
@@ -138,8 +140,10 @@ class MoodTrackerApp extends StatelessWidget {
 }
 
 class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
   @override
-  _AuthWrapperState createState() => _AuthWrapperState();
+  State<AuthWrapper> createState() => _AuthWrapperState();
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
@@ -169,7 +173,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
         // Get initial session
         _session = Supabase.instance.client.auth.currentSession;
-        print('🔍 Initial session check: ${_session != null ? _session!.user.email : 'No session'}');
+        if (kDebugMode) {
+          print('🔍 Initial session check: ${_session != null ? _session!.user.email : 'No session'}');
+        }
 
         if (mounted) {
           setState(() {});
@@ -179,7 +185,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
         Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
           // Prevent multiple simultaneous auth change handlers
           if (_isHandlingAuthChange) {
-            print('Auth change already being handled, skipping...');
+            if (kDebugMode) {
+              print('Auth change already being handled, skipping...');
+            }
             return;
           }
 
@@ -191,11 +199,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   data.session != null
                       ? data.session!.user.email ?? 'none'
                       : 'none';
-              print('🔄 Auth state change: ${data.event}, user: $userEmail');
+              if (kDebugMode) {
+                print('🔄 Auth state change: ${data.event}, user: $userEmail');
+              }
 
               // Handle sign out event explicitly
               if (data.event == AuthChangeEvent.signedOut) {
-                print('👋 User signed out, clearing session...');
+                if (kDebugMode) {
+                  print('👋 User signed out, clearing session...');
+                }
                 setState(() {
                   _session = null;
                 });
@@ -212,9 +224,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   (data.event == AuthChangeEvent.signedIn || 
                    data.event == AuthChangeEvent.tokenRefreshed ||
                    data.event == AuthChangeEvent.initialSession)) {
-                print(
-                  '🔐 User authenticated (event: ${data.event}), checking if profile exists...',
-                );
+                if (kDebugMode) {
+                  print(
+                    '🔐 User authenticated (event: ${data.event}), checking if profile exists...',
+                  );
+                }
 
                 // For Google Sign-In users, get the best available name from user metadata
                 String displayName = data.session!.user.email?.split('@')[0] ?? 'User';
@@ -369,24 +383,34 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    print('🔨 AuthWrapper.build() called - _isInitialized: $_isInitialized, _onboardingCompleted: $_onboardingCompleted, _session: ${_session != null ? _session!.user.email : 'null'}');
+    if (kDebugMode) {
+      print('🔨 AuthWrapper.build() called - _isInitialized: $_isInitialized, _onboardingCompleted: $_onboardingCompleted, _session: ${_session != null ? _session!.user.email : 'null'}');
+    }
 
     if (!_isInitialized) {
-      print('⏳ Showing loading screen - app not initialized yet');
+      if (kDebugMode) {
+        print('⏳ Showing loading screen - app not initialized yet');
+      }
       return LoadingScreen(message: 'Initializing MoodFlow...');
     }
 
     // Show onboarding if not completed
     if (!_onboardingCompleted) {
-      print('👋 Showing onboarding screen - onboarding not completed');
+      if (kDebugMode) {
+        print('👋 Showing onboarding screen - onboarding not completed');
+      }
       return OnboardingScreen();
     }
 
     if (_session != null) {
-      print('🏠 User is authenticated, navigating to MoodHomePage for user: ${_session!.user.email}');
-      return MoodHomePage();
+      if (kDebugMode) {
+        print('🏠 User is authenticated, navigating to MoodHomePage for user: ${_session!.user.email}');
+      }
+      return const MoodHomePage();
     } else {
-      print('🔐 User not authenticated, showing AuthPage');
+      if (kDebugMode) {
+        print('🔐 User not authenticated, showing AuthPage');
+      }
       return AuthPage();
     }
   }
@@ -451,8 +475,10 @@ class MoodEntry {
 }
 
 class MoodHomePage extends StatefulWidget {
+  const MoodHomePage({super.key});
+
   @override
-  _MoodHomePageState createState() => _MoodHomePageState();
+  State<MoodHomePage> createState() => _MoodHomePageState();
 }
 
 class _MoodHomePageState extends State<MoodHomePage>
@@ -725,23 +751,25 @@ class _MoodHomePageState extends State<MoodHomePage>
           _animationController.forward();
 
           // Show success feedback
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.white),
-                  const SizedBox(width: 8),
-                  const Text('Mood logged successfully!'),
-                ],
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.white),
+                    const SizedBox(width: 8),
+                    const Text('Mood logged successfully!'),
+                  ],
+                ),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                duration: const Duration(seconds: 2),
               ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              duration: const Duration(seconds: 2),
-            ),
-          );
+            );
+          }
         }
       } catch (error) {
         print('Error adding mood entry: $error');
