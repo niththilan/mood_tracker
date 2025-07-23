@@ -117,16 +117,17 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
 
       final response = await GoogleAuthService.signInWithGoogle();
 
-      if (response == null && kIsWeb) {
-        // For web, the auth state change will be handled by AuthWrapper
+      if (kIsWeb) {
+        // For web, OAuth will redirect to Google and back
+        // The auth state change will be handled by AuthWrapper when user returns
         if (kDebugMode) {
-          print('Web OAuth initiated - waiting for auth state change');
+          print('Web OAuth initiated - user will be redirected to Google');
         }
-        // Show loading message for web users
+        // Keep loading state - user will be redirected away from this page
         setState(() {
-          _errorMessage =
-              '🔄 Redirecting to Google...\nPlease complete sign-in in the popup window.\nYour profile will be created automatically!';
+          _errorMessage = '🔄 Redirecting to Google...\nPlease complete sign-in and return to this page.';
         });
+        // Don't reset loading state - user is being redirected
         return;
       } else if (response == null) {
         // User cancelled (mobile)
@@ -137,29 +138,16 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
           _errorMessage = null; // Clear any error message
         });
         return;
-      }
-
-      // Success case (mobile or web with immediate response)
-      if (kDebugMode) {
-        print('🎉 Google sign-in successful - user: ${response.user?.email}');
-      }
-      
-      // Show success message and let AuthWrapper handle navigation
-      setState(() {
-        _errorMessage = '✅ Google Sign-In successful! Setting up your profile...';
-      });
-      
-      // Wait longer for the auth state change to be processed and profile creation
-      await Future.delayed(Duration(milliseconds: 2000));
-      
-      // Clear the loading state - AuthWrapper will handle navigation automatically
-      if (mounted) {
-        setState(() {
-          _errorMessage = '🎉 Welcome! Redirecting to your mood tracker...';
-        });
+      } else {
+        // Success case (mobile)
+        if (kDebugMode) {
+          print('🎉 Google sign-in successful - user: ${response.user?.email}');
+        }
         
-        // Give a bit more time for the UI to update
-        await Future.delayed(Duration(milliseconds: 500));
+        // Show success message and let AuthWrapper handle navigation
+        setState(() {
+          _errorMessage = '✅ Google Sign-In successful! Setting up your profile...';
+        });
       }
     } catch (error) {
       String errorMessage = 'Google sign-in failed. Please try again.';
@@ -222,7 +210,8 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         print('Processed error message: $errorMessage');
       }
     } finally {
-      if (mounted) {
+      // Only reset loading state if not on web (where user gets redirected)
+      if (!kIsWeb && mounted) {
         setState(() {
           _isLoading = false;
         });

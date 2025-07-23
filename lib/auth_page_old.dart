@@ -538,11 +538,9 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
 
         if (existingProfile == null) {
           // Create a basic profile for Google users
-          final googleUser = GoogleAuthService.getCurrentUser();
           final profileCreated = await UserProfileService.createUserProfile(
             userId: user.id,
-            name:
-                googleUser?.displayName ?? user.email?.split('@')[0] ?? 'User',
+            name: user.email?.split('@')[0] ?? 'User',
             age: null, // Can be updated later in profile
             gender: null, // Can be updated later in profile
           );
