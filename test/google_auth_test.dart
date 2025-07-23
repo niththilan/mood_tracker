@@ -45,7 +45,7 @@ void main() {
 
     test('GoogleAuthService should initialize without errors', () async {
       // This should not throw an exception
-      expect(() => GoogleAuthService.initializeForWeb(), returnsNormally);
+      expect(() => GoogleAuthService.initialize(), returnsNormally);
     });
 
     test('isSignedIn should return boolean without errors', () async {

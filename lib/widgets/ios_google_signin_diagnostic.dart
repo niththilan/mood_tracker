@@ -63,11 +63,9 @@ class _IOSGoogleSignInDiagnosticState extends State<IOSGoogleSignInDiagnostic> {
       _addResult('👤 Current sign-in status: ${isSignedIn ? "Signed In" : "Not Signed In"}');
       
       if (isSignedIn) {
-        final currentUser = GoogleAuthService.getCurrentUser();
-        if (currentUser != null) {
-          _addResult('   • User: ${currentUser.email}');
-          _addResult('   • Display Name: ${currentUser.displayName ?? "Not set"}');
-        }
+        // Note: getCurrentUser is not available in simplified Supabase-only auth
+        _addResult('   • Using Supabase authentication');
+        _addResult('   • Check Supabase client for user details');
       }
       
       _addResult('✅ Diagnostics completed successfully');

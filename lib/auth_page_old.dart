@@ -642,11 +642,9 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
     try {
       print('=== Testing Google Sign-In ===');
       
-      // First, test the configuration
-      if (!kIsWeb && Platform.isIOS) {
-        final configTest = await GoogleAuthService.testIOSConfiguration();
-        print('iOS configuration test: ${configTest ? "PASSED" : "FAILED"}');
-      }
+      // Test the configuration
+      final configTest = await GoogleAuthService.testConfiguration();
+      print('Configuration test: $configTest');
       
       // Then attempt sign-in
       final result = await GoogleAuthService.signInWithGoogle();
@@ -663,12 +661,12 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
           );
         }
       } else {
-        print('⚠️ Google Sign-In returned null');
+        print('⚠️ Google Sign-In returned null - OAuth redirect initiated');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Google Sign-In was cancelled or failed'),
-              backgroundColor: Colors.orange,
+              content: Text('Google Sign-In initiated - check popup or redirect'),
+              backgroundColor: Colors.blue,
             ),
           );
         }
@@ -1776,8 +1774,8 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
 
         const SizedBox(height: 16),
 
-        // Debug button for iOS Google Sign-In testing
-        if (!kIsWeb && Platform.isIOS) ...[
+        // Debug button for Google Sign-In testing (all platforms)
+        if (kDebugMode) ...[
           Center(
             child: OutlinedButton.icon(
               onPressed: _testGoogleSignIn,
@@ -1787,7 +1785,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                 color: Theme.of(context).colorScheme.secondary,
               ),
               label: Text(
-                'Test iOS Google Sign-In',
+                'Test Google Sign-In',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.secondary,
                   fontWeight: FontWeight.w500,
