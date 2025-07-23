@@ -13,7 +13,9 @@ class SupabaseConfig {
   static const String googleAndroidClientId =
       '631111437135-76ojbi40r925em3sinj9igoel5f4do1i.apps.googleusercontent.com';
   static const String googleIOSClientId =
-      '631111437135-5iajfi8mlc0olt9bla8tqhic6sior22j.apps.googleusercontent.com'; // OAuth Callback URLs - these MUST match your Google Cloud Console settings
+      '631111437135-5iajfi8mlc0olt9bla8tqhic6sior22j.apps.googleusercontent.com';
+
+  // OAuth Callback URLs - these MUST match your Google Cloud Console settings
   static const String oauthCallbackUrl =
       'https://xxasezacvotitccxnpaa.supabase.co/auth/v1/callback';
 
