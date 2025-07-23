@@ -1,6 +1,5 @@
 import Flutter
 import UIKit
-import GoogleSignIn
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -10,21 +9,9 @@ import GoogleSignIn
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
     
-    // Configure Google Sign-In
-    if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
-       let plist = NSDictionary(contentsOfFile: path),
-       let clientId = plist["CLIENT_ID"] as? String {
-      GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientId)
-    }
+    // Note: Using Supabase OAuth for Google authentication
+    // No need for GoogleSignIn native configuration
     
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
-  }
-  
-  override func application(
-    _ app: UIApplication,
-    open url: URL,
-    options: [UIApplication.OpenURLOptionsKey : Any] = [:]
-  ) -> Bool {
-    return GIDSignIn.sharedInstance.handle(url)
   }
 }

@@ -5,8 +5,10 @@ import 'services/google_auth_service.dart';
 import 'forgot_password_page.dart';
 
 class AuthPage extends StatefulWidget {
+  const AuthPage({super.key});
+
   @override
-  _AuthPageState createState() => _AuthPageState();
+  State<AuthPage> createState() => _AuthPageState();
 }
 
 class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
@@ -217,7 +219,6 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
         });
       }
     }
-  }
   }
 
   void _showSuccessDialog(String message) {
