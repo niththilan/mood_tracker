@@ -6,7 +6,7 @@ import '../services/theme_service.dart';
 class ColorThemePicker extends StatefulWidget {
   final VoidCallback? onThemeChanged;
 
-  const ColorThemePicker({Key? key, this.onThemeChanged}) : super(key: key);
+  const ColorThemePicker({super.key, this.onThemeChanged});
 
   @override
   State<ColorThemePicker> createState() => _ColorThemePickerState();
@@ -142,7 +142,7 @@ class _ColorThemePickerState extends State<ColorThemePicker>
 class _ColorThemeModal extends StatefulWidget {
   final VoidCallback? onThemeChanged;
 
-  const _ColorThemeModal({Key? key, this.onThemeChanged}) : super(key: key);
+  const _ColorThemeModal({super.key, this.onThemeChanged});
 
   @override
   State<_ColorThemeModal> createState() => _ColorThemeModalState();
@@ -359,13 +359,13 @@ class _ColorThemeItem extends StatefulWidget {
   final VoidCallback onTap;
 
   const _ColorThemeItem({
-    Key? key,
+    super.key,
     required this.name,
     required this.color,
     required this.icon,
     required this.isSelected,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   State<_ColorThemeItem> createState() => _ColorThemeItemState();

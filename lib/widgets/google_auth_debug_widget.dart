@@ -5,6 +5,8 @@ import '../services/google_auth_service.dart';
 import '../services/supabase_config.dart';
 
 class GoogleAuthDebugWidget extends StatefulWidget {
+  const GoogleAuthDebugWidget({super.key});
+
   @override
   _GoogleAuthDebugWidgetState createState() => _GoogleAuthDebugWidgetState();
 }
@@ -23,9 +25,9 @@ class _GoogleAuthDebugWidgetState extends State<GoogleAuthDebugWidget> {
     setState(() {
       _debugInfo = '''
 Platform Info:
-- Is Web: ${kIsWeb}
+- Is Web: $kIsWeb
 - Platform: ${kIsWeb ? 'Web' : Platform.operatingSystem}
-- Is Debug Mode: ${kDebugMode}
+- Is Debug Mode: $kDebugMode
 
 Google OAuth Configuration:
 - iOS Client ID: ${SupabaseConfig.googleIOSClientId}

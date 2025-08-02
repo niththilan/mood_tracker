@@ -5,6 +5,8 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class QuickMoodEntry extends StatefulWidget {
+  const QuickMoodEntry({super.key});
+
   @override
   _QuickMoodEntryState createState() => _QuickMoodEntryState();
 }

@@ -6,12 +6,14 @@ import '../services/supabase_config.dart';
 
 /// iOS Google Sign-In Diagnostic Widget
 class IOSGoogleSignInDiagnostic extends StatefulWidget {
+  const IOSGoogleSignInDiagnostic({super.key});
+
   @override
   _IOSGoogleSignInDiagnosticState createState() => _IOSGoogleSignInDiagnosticState();
 }
 
 class _IOSGoogleSignInDiagnosticState extends State<IOSGoogleSignInDiagnostic> {
-  List<String> _diagnosticResults = [];
+  final List<String> _diagnosticResults = [];
   bool _isRunning = false;
 
   Future<void> _runDiagnostics() async {
@@ -161,7 +163,7 @@ class _IOSGoogleSignInDiagnosticState extends State<IOSGoogleSignInDiagnostic> {
                 width: double.infinity,
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: Theme.of(context).colorScheme.outline,

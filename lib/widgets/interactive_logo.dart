@@ -7,11 +7,11 @@ class InteractiveLogo extends StatefulWidget {
   final VoidCallback? onTap;
 
   const InteractiveLogo({
-    Key? key,
+    super.key,
     this.size = 120.0,
     this.isAnimating = true,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   State<InteractiveLogo> createState() => _InteractiveLogoState();
@@ -254,11 +254,11 @@ class StaticLogo extends StatelessWidget {
   final Color? backgroundColor;
 
   const StaticLogo({
-    Key? key,
+    super.key,
     this.size = 120.0,
     this.primaryColor,
     this.backgroundColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

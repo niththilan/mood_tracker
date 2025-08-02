@@ -7,7 +7,7 @@ import 'conversations_page.dart';
 import 'friends_list_page.dart';
 
 class ChatSelectionPage extends StatelessWidget {
-  const ChatSelectionPage({Key? key}) : super(key: key);
+  const ChatSelectionPage({super.key});
 
   @override
   Widget build(BuildContext context) {

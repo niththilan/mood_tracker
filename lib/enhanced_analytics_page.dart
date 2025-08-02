@@ -7,6 +7,8 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'main.dart';
 
 class EnhancedAnalyticsPage extends StatefulWidget {
+  const EnhancedAnalyticsPage({super.key});
+
   @override
   _EnhancedAnalyticsPageState createState() => _EnhancedAnalyticsPageState();
 }
@@ -419,7 +421,7 @@ class _EnhancedAnalyticsPageState extends State<EnhancedAnalyticsPage>
               ),
             ),
             SizedBox(height: 24),
-            Container(
+            SizedBox(
               height: 200,
               child: AnimatedBuilder(
                 animation: _chartAnimationController,
@@ -520,7 +522,7 @@ class _EnhancedAnalyticsPageState extends State<EnhancedAnalyticsPage>
               ),
             ),
             SizedBox(height: 24),
-            Container(
+            SizedBox(
               height: 200,
               child: AnimatedBuilder(
                 animation: _chartAnimationController,

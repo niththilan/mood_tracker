@@ -80,6 +80,8 @@ class Goal {
 }
 
 class GoalsPage extends StatefulWidget {
+  const GoalsPage({super.key});
+
   @override
   _GoalsPageState createState() => _GoalsPageState();
 }

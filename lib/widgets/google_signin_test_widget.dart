@@ -4,6 +4,8 @@ import '../services/google_auth_service.dart';
 import '../services/supabase_config.dart';
 
 class GoogleSignInTestWidget extends StatefulWidget {
+  const GoogleSignInTestWidget({super.key});
+
   @override
   _GoogleSignInTestWidgetState createState() => _GoogleSignInTestWidgetState();
 }

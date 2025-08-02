@@ -9,10 +9,10 @@ class ColorThemeButton extends StatefulWidget {
   final String? tooltipMessage;
 
   const ColorThemeButton({
-    Key? key,
+    super.key,
     this.isFloating = false,
     this.tooltipMessage,
-  }) : super(key: key);
+  });
 
   @override
   State<ColorThemeButton> createState() => _ColorThemeButtonState();

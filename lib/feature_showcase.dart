@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class FeatureShowcasePage extends StatefulWidget {
+  const FeatureShowcasePage({super.key});
+
   @override
   _FeatureShowcasePageState createState() => _FeatureShowcasePageState();
 }

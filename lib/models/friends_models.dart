@@ -344,17 +344,17 @@ class ExtendedUserProfile extends UserProfile {
   final FriendMoodEntry? recentMood;
 
   ExtendedUserProfile({
-    required String id,
-    required String name,
-    required String avatarEmoji,
-    required String colorHex,
+    required super.id,
+    required super.name,
+    required super.avatarEmoji,
+    required super.colorHex,
     this.lastSeenAt,
     this.isOnline = false,
     this.mutualFriendsCount,
     this.isFriend = false,
     this.friendRequestStatus,
     this.recentMood,
-  }) : super(id: id, name: name, avatarEmoji: avatarEmoji, colorHex: colorHex);
+  });
 
   factory ExtendedUserProfile.fromProfile(
     UserProfile profile, {

@@ -4,7 +4,7 @@ import '../services/friends_service.dart';
 import 'friend_profile_page.dart';
 
 class UserSearchPage extends StatefulWidget {
-  const UserSearchPage({Key? key}) : super(key: key);
+  const UserSearchPage({super.key});
 
   @override
   State<UserSearchPage> createState() => _UserSearchPageState();

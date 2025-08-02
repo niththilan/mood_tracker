@@ -9,6 +9,8 @@ import 'services/google_auth_service.dart';
 import 'forgot_password_page.dart';
 
 class AuthPage extends StatefulWidget {
+  const AuthPage({super.key});
+
   @override
   _AuthPageState createState() => _AuthPageState();
 }

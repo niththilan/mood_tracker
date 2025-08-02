@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'main.dart';
 
 class AnalyticsPage extends StatefulWidget {
+  const AnalyticsPage({super.key});
+
   @override
   _AnalyticsPageState createState() => _AnalyticsPageState();
 }
@@ -312,7 +314,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                 ],
                               ),
                             );
-                          }).toList()
+                          })
                         else
                           Center(
                             child: Text(
@@ -356,7 +358,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                           ],
                         ),
                         SizedBox(height: 16),
-                        Container(
+                        SizedBox(
                           height: 60,
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,

@@ -8,6 +8,8 @@ import 'models/chat_models.dart';
 import 'chat_page.dart';
 
 class ConversationsPage extends StatefulWidget {
+  const ConversationsPage({super.key});
+
   @override
   _ConversationsPageState createState() => _ConversationsPageState();
 }

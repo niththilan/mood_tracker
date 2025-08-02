@@ -9,8 +9,7 @@ class FriendProfilePage extends StatefulWidget {
   final String userId;
   final ExtendedUserProfile? initialProfile;
 
-  const FriendProfilePage({Key? key, required this.userId, this.initialProfile})
-    : super(key: key);
+  const FriendProfilePage({super.key, required this.userId, this.initialProfile});
 
   @override
   State<FriendProfilePage> createState() => _FriendProfilePageState();

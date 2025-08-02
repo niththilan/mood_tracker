@@ -5,7 +5,7 @@ import '../services/theme_service.dart';
 class ThemeToggleWidget extends StatelessWidget {
   final bool isCompact;
 
-  const ThemeToggleWidget({Key? key, this.isCompact = false}) : super(key: key);
+  const ThemeToggleWidget({super.key, this.isCompact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -21,9 +21,9 @@ class ThemeToggleWidget extends StatelessWidget {
 
         return FloatingActionButton.small(
           onPressed: () => _showThemeModal(context, themeService),
-          child: Icon(_getThemeIcon(themeService.themeMode)),
           tooltip: 'Change Theme',
           heroTag: "theme_toggle",
+          child: Icon(_getThemeIcon(themeService.themeMode)),
         );
       },
     );

@@ -5,6 +5,8 @@ import 'services/user_profile_service.dart';
 import 'services/theme_service.dart';
 
 class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
+
   @override
   _ProfilePageState createState() => _ProfilePageState();
 }
@@ -580,7 +582,7 @@ class _ProfilePageState extends State<ProfilePage>
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 12),
-        Container(
+        SizedBox(
           height: 80,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,

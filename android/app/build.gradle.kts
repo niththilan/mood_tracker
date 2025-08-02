@@ -25,7 +25,7 @@ android {
         applicationId = "com.example.mood_tracker"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 23  // Required for Firebase Auth
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -50,4 +50,24 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:34.0.0"))
+
+    // Firebase Analytics
+    implementation("com.google.firebase:firebase-analytics")
+    
+    // Firebase Auth (for user authentication)
+    implementation("com.google.firebase:firebase-auth")
+    
+    // Firestore (for data storage)
+    implementation("com.google.firebase:firebase-firestore")
+    
+    // Firebase Storage (for file uploads)
+    implementation("com.google.firebase:firebase-storage")
+
+    // When using the BoM, don't specify versions in Firebase dependencies
+    // Add other Firebase products as needed
 }

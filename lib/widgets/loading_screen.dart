@@ -4,8 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 class LoadingScreen extends StatelessWidget {
   final String message;
 
-  const LoadingScreen({Key? key, this.message = 'Loading...'})
-    : super(key: key);
+  const LoadingScreen({super.key, this.message = 'Loading...'});
 
   @override
   Widget build(BuildContext context) {

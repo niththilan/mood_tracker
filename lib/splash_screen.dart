@@ -5,7 +5,7 @@ import 'widgets/interactive_logo.dart';
 class SplashScreen extends StatefulWidget {
   final VoidCallback onComplete;
 
-  const SplashScreen({Key? key, required this.onComplete}) : super(key: key);
+  const SplashScreen({super.key, required this.onComplete});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();

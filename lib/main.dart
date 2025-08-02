@@ -2601,7 +2601,7 @@ class _MoodHomePageState extends State<MoodHomePage>
                   ),
                   tooltip:
                       _unreadMessageCount > 0
-                          ? 'Chat Options (${_unreadMessageCount} unread)'
+                          ? 'Chat Options ($_unreadMessageCount unread)'
                           : 'Chat Options',
                   onPressed: () {
                     HapticFeedback.lightImpact();
@@ -2957,6 +2957,7 @@ class _MoodHomePageState extends State<MoodHomePage>
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   elevation: 8,
+                  tooltip: 'Quick Mood Entry',
                   child: Container(
                     padding: EdgeInsets.all(6),
                     decoration: BoxDecoration(
@@ -2972,7 +2973,6 @@ class _MoodHomePageState extends State<MoodHomePage>
                     ),
                     child: Icon(Icons.add_reaction_rounded, size: 32),
                   ),
-                  tooltip: 'Quick Mood Entry',
                 ),
               ),
               // Color theme button

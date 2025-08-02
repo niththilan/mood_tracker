@@ -10,11 +10,11 @@ class AuthWrapper extends StatefulWidget {
   final Widget Function(BuildContext context)? loadingBuilder;
 
   const AuthWrapper({
-    Key? key,
+    super.key,
     required this.authenticatedBuilder,
     required this.unauthenticatedBuilder,
     this.loadingBuilder,
-  }) : super(key: key);
+  });
 
   @override
   State<AuthWrapper> createState() => _AuthWrapperState();

@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import 'main.dart';
 
 class MoodJournal extends StatefulWidget {
+  const MoodJournal({super.key});
+
   @override
   _MoodJournalState createState() => _MoodJournalState();
 }
