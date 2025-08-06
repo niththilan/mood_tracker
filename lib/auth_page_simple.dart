@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'services/auth_service.dart';
 
 class AuthPage extends StatefulWidget {
@@ -47,7 +46,7 @@ class _AuthPageState extends State<AuthPage> {
         if (password != _confirmPasswordController.text) {
           throw Exception('Passwords do not match');
         }
-        await AuthService.signUp(email, password);
+        await AuthService().signUpWithEmailPassword(email: email, password: password);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -57,7 +56,7 @@ class _AuthPageState extends State<AuthPage> {
           );
         }
       } else {
-        await AuthService.signIn(email, password);
+        await AuthService().signInWithEmailPassword(email: email, password: password);
       }
     } catch (e) {
       if (mounted) {

@@ -1,10 +1,13 @@
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+// TEMPORARILY DISABLED - Firebase dependencies removed
+// import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 // import 'package:google_sign_in/google_sign_in.dart'; // Temporarily disabled
-import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+// import 'package:flutter/foundation.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 /// Firebase Authentication Service (Simplified - Google Sign-In disabled)
 /// This service handles basic Firebase authentication
+/// TEMPORARILY DISABLED - ALL FIREBASE FUNCTIONALITY COMMENTED OUT
+/*
 class FirebaseAuthService {
   static final firebase_auth.FirebaseAuth _firebaseAuth = firebase_auth.FirebaseAuth.instance;
   static final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
@@ -116,3 +119,4 @@ class FirebaseAuthService {
     return result;
   }
 }
+*/
