@@ -31,6 +31,11 @@ target 'Runner' do
   use_frameworks!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  
+  # Firebase and Google Sign-In compatibility fixes
+  pod 'GoogleUtilities', '~> 8.0'
+  pod 'GoogleSignIn', '~> 8.0'
+  
   target 'RunnerTests' do
     inherit! :search_paths
   end
@@ -39,5 +44,10 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    
+    # Fix for Firebase and Google Sign-In compatibility
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+    end
   end
 end
