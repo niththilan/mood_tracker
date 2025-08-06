@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/foundation.dart'; // For kIsWeb
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+// import 'package:firebase_core/firebase_core.dart';
+// import 'firebase_options.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,8 +22,8 @@ import 'profile_page.dart';
 import 'services/user_profile_service.dart';
 import 'services/theme_service.dart';
 import 'services/supabase_config.dart';
-import 'services/google_auth_service.dart';
-import 'services/firebase_auth_service.dart';
+// import 'services/google_auth_service.dart';
+// import 'services/firebase_auth_service.dart';
 import 'widgets/theme_toggle_widget.dart';
 import 'widgets/color_theme_button.dart';
 import 'widgets/interactive_logo.dart';
@@ -36,9 +36,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // await Firebase.initializeApp(
+  //   options: DefaultFirebaseOptions.currentPlatform,
+  // );
 
   // Initialize Supabase without blocking
   _initializeSupabase();
@@ -66,22 +66,22 @@ void _initializeSupabase() async {
     );
 
     // Initialize Google Sign-In with proper error handling
-    try {
-      await GoogleAuthService.initialize();
-      Logger.info('Google Auth Service initialized successfully');
-    } catch (googleError) {
-      Logger.error('Google Auth Service initialization failed: $googleError');
-      // Continue anyway - user can still use email/password
-    }
+    // try {
+    //   await GoogleAuthService.initialize();
+    //   Logger.info('Google Auth Service initialized successfully');
+    // } catch (googleError) {
+    //   Logger.error('Google Auth Service initialization failed: $googleError');
+    //   // Continue anyway - user can still use email/password
+    // }
 
     // Initialize Firebase Auth Service
-    try {
-      await FirebaseAuthService.initialize();
-      Logger.info('Firebase Auth Service initialized successfully');
-    } catch (firebaseError) {
-      Logger.error('Firebase Auth Service initialization failed: $firebaseError');
-      // Continue anyway - user can still use Supabase auth
-    }
+    // try {
+    //   await FirebaseAuthService.initialize();
+    //   Logger.info('Firebase Auth Service initialized successfully');
+    // } catch (firebaseError) {
+    //   Logger.error('Firebase Auth Service initialization failed: $firebaseError');
+    //   // Continue anyway - user can still use Supabase auth
+    // }
   } catch (e) {
     Logger.error('Initialization error: $e');
     // Continue anyway - we'll handle errors in UI
@@ -820,12 +820,12 @@ class _MoodHomePageState extends State<MoodHomePage>
   Future<void> _signOut() async {
     try {
       // Sign out from Google first (if signed in with Google)
-      if (await GoogleAuthService.isSignedIn()) {
-        await GoogleAuthService.signOut();
-      } else {
+      // if (await GoogleAuthService.isSignedIn()) {
+      //   await GoogleAuthService.signOut();
+      // } else {
         // Regular Supabase sign out for email/password users
         await supabase.auth.signOut();
-      }
+      // }
 
       // Use the global navigator to immediately navigate to auth page
       // This ensures immediate UI update

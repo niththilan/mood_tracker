@@ -47,7 +47,7 @@ class _AuthPageState extends State<AuthPage> {
         if (password != _confirmPasswordController.text) {
           throw Exception('Passwords do not match');
         }
-        await AuthService().signUpWithEmailPassword(email: email, password: password);
+        await AuthService.signUp(email, password);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -57,7 +57,7 @@ class _AuthPageState extends State<AuthPage> {
           );
         }
       } else {
-        await AuthService().signInWithEmailPassword(email: email, password: password);
+        await AuthService.signIn(email, password);
       }
     } catch (e) {
       if (mounted) {
