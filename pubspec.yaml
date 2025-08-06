@@ -33,6 +33,7 @@ dependencies:
   supabase_flutter: ^2.9.0
   sign_in_with_apple: ^6.1.4
   crypto: ^3.0.3
+  firebase_core: ^2.24.2
   
   # UI and Animation packages
   cupertino_icons: ^1.0.8

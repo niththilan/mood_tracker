@@ -12,7 +12,20 @@
           "package_name": "com.example.mood_tracker"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "339369629725-jp65m3gghjq44jortj9on2m66hr52o1v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mood_tracker",
+            "certificate_hash": "87596bedf2670a21ee4533227fac98b53966b679"
+          }
+        },
+        {
+          "client_id": "339369629725-dqr0utelv0j6vobphpq1anoispd392bj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAE4_2s3qoU6pp29KIcj9i4AdRRsW8NPJk"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "339369629725-dqr0utelv0j6vobphpq1anoispd392bj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "339369629725-lekp3l12v8385i36lhgvviotrri585mt.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.moodTracker"
+              }
+            }
+          ]
         }
       }
     }
