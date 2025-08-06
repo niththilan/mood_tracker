@@ -227,12 +227,12 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
       }
 
       // Use Firebase Google Sign-In for all platforms
-      final userCredential = await FirebaseAuthService.signInWithGoogle();
+      final result = await FirebaseAuthService.signInWithGoogle();
 
-      if (userCredential?.user != null) {
+      if (result['success'] == true && result['user'] != null) {
         // Success case
         if (kDebugMode) {
-          print('🎉 Firebase Google sign-in successful - user: ${userCredential!.user!.email}');
+          print('🎉 Firebase Google sign-in successful - user: ${result['user'].email}');
         }
         
         // Show success message and let AuthWrapper handle navigation
@@ -240,7 +240,7 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
           _errorMessage = '✅ Firebase Google Sign-In successful! Setting up your profile...';
         });
       } else {
-        throw Exception('No user returned from Firebase authentication');
+        throw Exception(result['error'] ?? 'Google Sign-In failed');
       }
     } catch (error) {
       String errorMessage = 'Firebase Google sign-in failed. Please try again.';
