@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'services/auth_service.dart';
 import 'services/google_auth_service.dart';
+import 'services/firebase_auth_service.dart';
 import 'forgot_password_page.dart';
 
 class AuthPage extends StatefulWidget {
@@ -202,6 +203,77 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
       } else {
         errorMessage =
             '❌ Google Sign-In Failed\n\nPlease try email/password sign-in instead.\nIt\'s more reliable!';
+      }
+
+      setState(() {
+        _errorMessage = errorMessage;
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handleFirebaseGoogleAuth() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      if (kDebugMode) {
+        print('Starting Firebase Google authentication...');
+      }
+
+      // Use Firebase Google Sign-In for all platforms
+      final userCredential = await FirebaseAuthService.signInWithGoogle();
+
+      if (userCredential?.user != null) {
+        // Success case
+        if (kDebugMode) {
+          print('🎉 Firebase Google sign-in successful - user: ${userCredential!.user!.email}');
+        }
+        
+        // Show success message and let AuthWrapper handle navigation
+        setState(() {
+          _errorMessage = '✅ Firebase Google Sign-In successful! Setting up your profile...';
+        });
+      } else {
+        throw Exception('No user returned from Firebase authentication');
+      }
+    } catch (error) {
+      String errorMessage = 'Firebase Google sign-in failed. Please try again.';
+      final errorStr = error.toString().toLowerCase();
+
+      if (kDebugMode) {
+        print('Firebase Google auth error: $error');
+      }
+
+      // Handle specific error types with helpful messages
+      if (errorStr.contains('popup_blocked') ||
+          errorStr.contains('popup')) {
+        errorMessage =
+            '🚫 Popup Blocked\n\nPlease allow popups for this site and try again.';
+      } else if (errorStr.contains('cancelled') ||
+          errorStr.contains('closed') ||
+          errorStr.contains('user_canceled') ||
+          errorStr.contains('user-cancelled')) {
+        // Don't show error for user cancellation
+        setState(() {
+          _errorMessage = null;
+        });
+        return;
+      } else if (errorStr.contains('network')) {
+        errorMessage =
+            '🌐 Network Error\n\nPlease check your internet connection and try again.';
+      } else if (errorStr.contains('token') ||
+          errorStr.contains('authentication')) {
+        errorMessage =
+            '🔑 Authentication Error\n\nPlease try signing in again or use email/password.';
+      } else {
+        errorMessage =
+            '❌ Firebase Google Sign-In Failed\n\nError: $error\n\nPlease try email/password sign-in instead.';
       }
 
       setState(() {
@@ -513,12 +585,12 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
 
                       const SizedBox(height: 24),
 
-                      // Google Sign In Button
+                      // Google Sign In Button (Supabase)
                       OutlinedButton.icon(
                         onPressed: _isLoading ? null : _handleGoogleAuth,
                         icon: const Icon(Icons.account_circle, size: 20),
                         label: Text(
-                          'Continue with Google',
+                          'Continue with Google (Supabase)',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -532,11 +604,34 @@ class _AuthPageState extends State<AuthPage> with TickerProviderStateMixin {
                         ),
                       ),
 
+                      const SizedBox(height: 12),
+
+                      // Firebase Google Sign In Button
+                      FilledButton.icon(
+                        onPressed: _isLoading ? null : _handleFirebaseGoogleAuth,
+                        icon: const Icon(Icons.flash_on, size: 20),
+                        label: Text(
+                          'Continue with Google (Firebase)',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.orange.shade600,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+
                       // Google Sign In Info
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
-                          'Note: Google Sign-In may require additional setup.\nEmail/password authentication is recommended.',
+                          'Try Firebase Google Sign-In (recommended) or use email/password authentication.',
                           style: Theme.of(
                             context,
                           ).textTheme.bodySmall?.copyWith(

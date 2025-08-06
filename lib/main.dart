@@ -23,6 +23,7 @@ import 'services/user_profile_service.dart';
 import 'services/theme_service.dart';
 import 'services/supabase_config.dart';
 import 'services/google_auth_service.dart';
+import 'services/firebase_auth_service.dart';
 import 'widgets/theme_toggle_widget.dart';
 import 'widgets/color_theme_button.dart';
 import 'widgets/interactive_logo.dart';
@@ -71,6 +72,15 @@ void _initializeSupabase() async {
     } catch (googleError) {
       Logger.error('Google Auth Service initialization failed: $googleError');
       // Continue anyway - user can still use email/password
+    }
+
+    // Initialize Firebase Auth Service
+    try {
+      await FirebaseAuthService.initialize();
+      Logger.info('Firebase Auth Service initialized successfully');
+    } catch (firebaseError) {
+      Logger.error('Firebase Auth Service initialization failed: $firebaseError');
+      // Continue anyway - user can still use Supabase auth
     }
   } catch (e) {
     Logger.error('Initialization error: $e');
